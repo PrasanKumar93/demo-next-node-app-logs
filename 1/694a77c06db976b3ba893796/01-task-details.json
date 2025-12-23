@@ -76,22 +76,28 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "What is the actual tech stack (frontend framework, backend framework/language, validation libraries, ORM, test runner)?"
+      "question": "What is the actual tech stack (frontend framework, backend framework/language, validation libraries, ORM, test runner)?",
+      "answer":"frontend is next js typescript, backend in express typescript, zod schema for validations"
     },
     {
-      "question": "Is Street Address a top-level field (streetAddress) or nested under an address object (address.street)?"
+      "question": "Is Street Address a top-level field (streetAddress) or nested under an address object (address.street)?",
+      "answer":"nested under address field"
     },
     {
-      "question": "Should an empty string be stored as NULL, or preserved as an empty string? (Preferred: normalize to NULL.)"
+      "question": "Should an empty string be stored as NULL, or preserved as an empty string? (Preferred: normalize to NULL.)",
+      "answer":"Preferred way"
     },
     {
-      "question": "Are there other address fields on registration (city/state/zip/country) and should any of those also become optional?"
+      "question": "Are there other address fields on registration (city/state/zip/country) and should any of those also become optional?",
+      "answer":"no"
     },
     {
-      "question": "Are there downstream flows that require an address immediately after registration (e.g., shipping/checkout)? If yes, should we gate those flows instead?"
+      "question": "Are there downstream flows that require an address immediately after registration (e.g., shipping/checkout)? If yes, should we gate those flows instead?",
+      "answer":"no"
     },
     {
-      "question": "Do we need to update API documentation/contract (OpenAPI/GraphQL) and any client SDKs?"
+      "question": "Do we need to update API documentation/contract (OpenAPI/GraphQL) and any client SDKs?",
+      "answer":"Yes, front end validation, back end schema change"
     }
   ],
   "llmFileReferences": [],
