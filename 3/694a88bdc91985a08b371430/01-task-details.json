@@ -9,5 +9,111 @@
   "assignee": "PrasanKumar93",
   "taskStatus": "TODO",
   "taskCategory": "",
-  "priority": ""
+  "priority": "",
+  "llmTaskExplanation": "This is a legitimate software development task: update the user registration page so the Street Address field is optional (non-mandatory). Implement the change end-to-end so users can submit the registration form without providing a street address, and the backend (if it currently requires the field) accepts missing/empty street address without validation errors. Update any shared validation schemas, form UI indicators (required asterisk), error messages, and API payload construction so that omitting street address does not block registration. Ensure existing behavior remains unchanged for other required fields and that address is still saved when provided.",
+  "validations": [
+    "Registration form can be submitted when Street Address is empty/null/undefined (no client-side required validation triggered).",
+    "If Street Address is provided, it must still pass existing format constraints (e.g., max length, allowed characters) as currently implemented.",
+    "Street Address required indicator (e.g., asterisk) is removed and helper/error text does not imply it is required.",
+    "Backend validation (request DTO/schema) does not reject missing Street Address; it should accept absent field or empty string per existing conventions.",
+    "If Street Address is omitted, the stored user profile/address record should either store null/empty or omit the field without causing errors downstream.",
+    "No regression: other required registration fields remain required and still show validation errors when missing.",
+    "Edge case: Street Address containing only whitespace is treated as empty (either trimmed to empty and accepted, or validated consistently with existing trimming rules)."
+  ],
+  "unitTests": [
+    "Frontend: submitting registration with all required fields filled except Street Address succeeds (no validation error shown for Street Address).",
+    "Frontend: Street Address field does not render a required marker and does not show 'required' error on blur when empty.",
+    "Frontend: if Street Address is provided, existing validation rules still apply (e.g., too long triggers error).",
+    "Backend: registration endpoint accepts payload without Street Address field and returns success response.",
+    "Backend: registration endpoint accepts payload with Street Address as empty string (if client sends it) and returns success (or normalizes to null) according to existing conventions.",
+    "Backend: other required fields missing still return validation errors (regression test).",
+    "Integration (if present): end-to-end registration flow works with Street Address omitted and user record is created."
+  ],
+  "acceptanceCriteria": [
+    "Given I am on the registration page, when I leave Street Address blank and fill all other required fields, then I can successfully submit the form and create an account.",
+    "Given I am on the registration page, when Street Address is blank, then no 'Street Address is required' validation message is shown and the field is not marked as required.",
+    "Given I enter a Street Address, when it violates existing constraints (e.g., exceeds max length), then I see the appropriate validation error and cannot submit until corrected.",
+    "Given the registration API receives a request without Street Address, when it validates the request, then it does not reject the request due to missing Street Address.",
+    "Given I register without Street Address, when I later view the created user/profile data (where applicable), then the system does not error and the address field is simply empty/absent."
+  ],
+  "technicalDependencies": [
+    "Use existing form library and validation approach already in the repo (e.g., React Hook Form/Formik + Yup/Zod) rather than introducing a new one.",
+    "Use existing backend validation framework already in the repo (e.g., class-validator, Joi, Zod, Rails validations, etc.)."
+  ],
+  "security": [
+    "Continue to treat address as PII: avoid logging full street address in plaintext application logs.",
+    "Maintain existing server-side validation/sanitization to prevent injection (e.g., trim input, reject unexpected types).",
+    "Ensure no authorization changes are introduced; registration remains publicly accessible only as currently designed."
+  ],
+  "performance": [
+    "No meaningful performance impact expected; avoid adding heavy new dependencies.",
+    "Keep client bundle size unchanged by reusing existing validation utilities."
+  ],
+  "businessContext": "Making Street Address optional reduces friction during sign-up and can improve conversion. Address can be collected later (e.g., during checkout/profile completion) while still allowing account creation. UX should clearly indicate which fields are required and which are optional.",
+  "otherNotes": "Update any copy/i18n strings that mention Street Address as required. If analytics events track validation errors or form completion, ensure the change does not break event payloads. If there are downstream flows that assume address exists (shipping, billing), they should already handle missing address or be addressed separately (out of scope unless registration currently breaks).",
+  "llmAssumptions": [
+    {
+      "assumption": "There is a registration page with a Street Address input currently marked required and enforced by client-side validation."
+    },
+    {
+      "assumption": "There is a backend registration endpoint that may validate required fields and may currently require street address."
+    },
+    {
+      "assumption": "The project already has an established form validation approach (schema-based or imperative) that should be modified rather than replaced."
+    },
+    {
+      "assumption": "If the client sends an empty string for Street Address, the backend can accept it or normalize it to null without breaking persistence."
+    }
+  ],
+  "llmOpenQuestions": [
+    {
+      "question": "Should Street Address be optional for all user types/regions, or only for specific countries/flows?"
+    },
+    {
+      "question": "If a user leaves Street Address blank, should the UI label explicitly show it as “optional” (e.g., 'Street Address (optional)') or simply remove the required indicator?"
+    },
+    {
+      "question": "When Street Address is omitted, should the system store it as null, empty string, or omit the field entirely (preference for reporting/exports)?"
+    }
+  ],
+  "llmFileReferences": [],
+  "inScope": [
+    "Make Street Address optional on the registration form UI.",
+    "Update client-side validation so Street Address is not required.",
+    "Update server-side validation so Street Address is not required for registration.",
+    "Update tests to cover the optional behavior and prevent regressions."
+  ],
+  "outOfScope": [
+    "Redesigning the entire registration UX beyond required/optional changes for Street Address.",
+    "Changing requirements for other address fields (city/state/postal code/country) unless they are coupled to Street Address validation and must be adjusted to keep registration working.",
+    "Adding new address collection steps or profile completion flows.",
+    "Data backfills or migrations for existing users unless required to prevent runtime errors."
+  ],
+  "suggestedFileChanges": [
+    {
+      "path": "frontend/**/Registration*.tsx",
+      "rationale": "Update the registration form field configuration to remove required constraint/indicator for Street Address and adjust submission payload handling."
+    },
+    {
+      "path": "frontend/**/validation/**",
+      "rationale": "Update the form validation schema/rules to make Street Address optional and handle whitespace trimming consistently."
+    },
+    {
+      "path": "backend/**/register*.*",
+      "rationale": "Update registration request validation (DTO/schema/controller) to not require Street Address."
+    },
+    {
+      "path": "backend/**/validators/**",
+      "rationale": "If shared validators enforce required address, relax Street Address requirement while keeping other constraints."
+    },
+    {
+      "path": "frontend/**/__tests__/**",
+      "rationale": "Add/adjust unit tests for registration form behavior when Street Address is omitted."
+    },
+    {
+      "path": "backend/**/__tests__/**",
+      "rationale": "Add/adjust API tests to ensure registration succeeds without Street Address and still fails when other required fields are missing."
+    }
+  ],
+  "promptForAider": "## Task: Make Street Address non-mandatory on registration\n\nUpdate the registration flow so **Street Address is optional**.\n\n### Requirements\n- Remove any UI required indicator (asterisk) and any client-side required validation for Street Address.\n- Ensure the registration form can submit successfully with Street Address omitted/empty.\n- Keep existing validation constraints when Street Address is provided (e.g., max length/format).\n- Update backend request validation so missing Street Address does **not** cause a 4xx validation error.\n- Ensure other required fields remain required (no regressions).\n- Treat whitespace-only Street Address as empty (trim/normalize consistent with existing patterns).\n\n### Tests to add/update\n- Frontend unit test: submit registration with Street Address blank succeeds (no validation error).\n- Frontend unit test: Street Address not marked required.\n- Backend test: registration endpoint accepts payload without Street Address.\n- Regression tests: missing other required fields still fails.\n\n### Security/PII\n- Do not add logging of full street address; keep PII handling unchanged.\n\n### Implementation notes\n- Reuse existing form/validation libraries and patterns in the repo; do not introduce new dependencies.\n- Update any i18n/copy that implies Street Address is required.\n"
 }
