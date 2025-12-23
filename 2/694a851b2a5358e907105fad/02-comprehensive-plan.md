@@ -1,164 +1,240 @@
 ### 1. CODEBASE ANALYSIS
 After reviewing the referenced areas, the registration flow appears to be implemented end-to-end across:
-- **Frontend page + form component**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx` render the registration UI, including the Street Address input, required indicator (asterisk), and client-side validation wiring (likely via a shared schema).
-- **Shared client validation schema**: `src/validation/registerSchema.ts` defines required/optional rules and field constraints (e.g., max length). Street Address is currently treated as required here (directly or indirectly).
-- **Backend route + validation**: `server/routes/auth.ts` handles the registration endpoint and invokes a validation layer in `server/validation/register.ts` (or similar). Street Address is currently required at the API boundary.
-- **Persistence layer**: `server/models/User.ts` defines the user model shape and may mark street address as required/non-nullable. The DB schema may enforce `NOT NULL` on the street address column.
-- **Downstream rendering**: other UI pages may display address fields; they must handle missing street address gracefully (avoid rendering `undefined`).
 
-Key behavioral constraint: **do not introduce new trimming/normalization** for Street Address. If whitespace-only is entered, it must be preserved as-is (client and server).
+- **Frontend page + form component**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx` render the registration UI, including the Street Address input, required indicator (asterisk), and client-side validation wiring (likely via a shared schema).
+- **Client validation schema**: `src/validation/registerSchema.ts` defines required/optional rules and field constraints (e.g., max length, regex). Street Address is currently treated as required here (directly or indirectly).
+- **Backend route + validation**: `server/routes/auth.ts` handles the registration endpoint and invokes a validation layer in `server/validation/register.ts` (or similar). Street Address is currently required at the API boundary and/or via additional manual checks.
+- **Persistence layer**: `server/models/User.ts` defines the user model shape and may mark street address as required/non-nullable. The DB schema may enforce `NOT NULL` on the street address column.
+- **Downstream rendering**: other UI pages/components may display address fields; they must handle missing street address gracefully (avoid rendering `undefined` or crashing).
+
+Key behavioral constraint: **do not introduce new trimming/normalization** for Street Address. If whitespace-only is entered, it must be preserved as-is (client and server). This requires auditing for:
+- client-side transforms (schema `.trim()`, preprocessors, submit payload builders)
+- server-side sanitization middleware (e.g., global trim), validation transforms, ORM hooks
+
+Also, optionality must apply **for all users/regions**, so we must locate and remove any conditional “address required” logic (e.g., based on country/region).
 
 ---
 
 ### 2. IMPLEMENTATION STRATEGY
-Make Street Address optional consistently across all layers:
-1. **Frontend UI/UX**: keep the field visible, remove required indicator and required error, update label to “Street address (optional)”, and ensure form submission does not block when empty/omitted.
-2. **Frontend validation**: update schema/rules so Street Address is optional while preserving existing constraints *when provided* (e.g., max length). Avoid adding transforms like `.trim()` or preprocessors.
-3. **Backend validation**: update request schema so Street Address is not required for any region/user type; keep existing constraints when present; avoid trimming/normalization.
-4. **DB/model**: ensure the column allows NULL (migration if needed) and model typing reflects optional/nullable.
-5. **Graceful rendering**: ensure any address display code does not show literal `undefined` or crash when street address is missing.
+Make Street Address optional consistently across all layers, with explicit handling for **omitted**, **empty string**, and **whitespace-only** values:
+
+1. **Frontend UI/UX**: keep the field visible, remove required indicator and required error, update label to “Street address (optional)” (i18n-safe), and ensure submit is allowed when empty/omitted.
+2. **Frontend validation**: update schema so Street Address is optional and accepts:
+   - `undefined` (omitted)
+   - `""` (empty string)
+   - `"   "` (whitespace-only) without trimming
+   while still enforcing existing constraints **only when a non-empty value is provided** (or exactly matching existing behavior).
+3. **Backend validation**: update request schema so Street Address is not required for any region/user type; ensure missing/empty string does not fail validation; keep existing constraints when present; avoid trimming/normalization.
+4. **Persistence**: ensure the DB column allows NULL (migration if needed) and model typing reflects optional/nullable; ensure create/update paths accept undefined/empty without constraint violations.
+5. **Graceful rendering**: update any address formatting/rendering to avoid literal `undefined` and awkward punctuation when street address is missing.
+6. **Types/DTOs**: ensure any shared request/response types used by client/server mark street address optional to prevent TS errors and mismatches.
+
+(Per instructions for this node: implementation plan only; tests are handled separately, but we will include explicit steps to update/add tests as required by the task.)
 
 ---
 
 ### 3. COMPREHENSIVE STEP-BY-STEP IMPLEMENTATION PLAN
 
-**Step 1: Locate the Street Address field definition and required UI indicator**
-- **File**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx`
-- **Action**: Identify where Street Address is rendered and how “required” is expressed (asterisk, `required` prop, aria attributes, helper text).
+**Step 1: Locate Street Address field, required UI, and validation wiring**
+- **File**: `src/pages/Register.tsx`, `src/components/RegistrationForm.tsx`
+- **Action**: Identify how Street Address is rendered and marked required, and how validation errors are displayed.
 - **Details**:
-  - Find the label text and required marker logic.
-  - Find any inline error message mapping for Street Address (e.g., `errors.streetAddress?.message`).
-  - Find any HTML `required` attribute or component-level `isRequired` prop.
-- **Rationale**: Ensures we remove *all* required indicators and required-only error messaging.
-- **Addresses**: Acceptance criteria #2
+  - Find label text, required asterisk/indicator logic, `required` HTML attribute, or component props like `isRequired`.
+  - Find error mapping for street address (e.g., `errors.streetAddress?.message`).
+  - Identify form library and resolver (React Hook Form + Yup/Zod, Formik, etc.) and where schema is attached.
+- **Rationale**: Ensures we remove *all* required indicators and required-only error behavior.
+- **Addresses**: AC #2; Validation rules #2
 
-**Step 2: Update the Street Address label to clearly indicate optionality**
-- **File**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx`
-- **Action**: Change label to “Street address (optional)” (or i18n equivalent).
+**Step 2: Update label to clearly indicate optionality (i18n-safe)**
+- **File**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx` (+ i18n files if present)
+- **Action**: Change label to “Street address (optional)” consistent with existing UX/i18n patterns.
 - **Details**:
-  - If the app uses i18n, add/update the translation key rather than hardcoding.
-  - Ensure optionality is conveyed in text (not only styling).
-- **Rationale**: UX requirement to keep field visible but clearly optional.
-- **Addresses**: Acceptance criteria #2, UX requirement
+  - If i18n is used, add/update a translation key rather than hardcoding.
+  - Ensure optionality is conveyed in text (accessibility), not only via styling.
+- **Rationale**: Meets UX requirement while keeping field visible.
+- **Addresses**: AC #2; UX requirement
 
 **Step 3: Remove required indicator/asterisk and required-only UI behavior**
 - **File**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx`
-- **Action**: Remove any required marker and any “Street Address is required” messaging.
+- **Action**: Make Street Address non-mandatory in the UI.
 - **Details**:
   - Remove asterisk rendering for this field.
   - Remove `required` attribute / `isRequired` prop for this field only.
-  - Ensure blur/submit does not trigger a “required” error for empty value.
+  - Ensure blur/submit does not show “Street Address is required” when empty.
 - **Rationale**: Field must not block registration.
-- **Addresses**: Acceptance criteria #1, #2
+- **Addresses**: AC #1, #2; Validation rules #1, #2
 
-**Step 4: Update client-side validation schema to make Street Address optional**
+**Step 4: Update client-side validation schema to accept omitted + empty string (and preserve whitespace)**
 - **File**: `src/validation/registerSchema.ts`
-- **Action**: Change Street Address from required to optional while preserving existing constraints when provided.
-- **Details**:
-  - Convert from `required()` to `optional()` / `notRequired()` / equivalent (depending on Yup/Zod/etc.).
-  - Keep existing validations like `max`, regex, allowed chars, etc., but ensure they only apply when the value is present (library-specific pattern).
-  - **Do not add** `.trim()`, transforms, preprocessors, or normalization.
-  - Ensure schema accepts:
-    - omitted field (`undefined`)
-    - empty string (`""`) if the form submits it that way
-    - `null` only if the system already uses nulls; otherwise prefer optional/undefined (but DB may store null).
-- **Rationale**: Aligns frontend validation with new optional requirement without changing whitespace behavior.
-- **Addresses**: Acceptance criteria #1, #4; Validation rules #1, #6
+- **Action**: Change Street Address from required to optional with explicit empty-string handling.
+- **Details** (must be explicit to avoid regressions):
+  - Ensure schema accepts `undefined` (omitted) and `""` (empty string) without triggering regex/min/format validators.
+  - Keep existing constraints (max length, allowed chars, etc.) **only when the value is meaningfully “provided”** per existing behavior. Concretely:
+    - If the library treats `""` as a value and runs validators, add conditional logic so validators run only when `value !== ""` (and do **not** trim).
+    - Do **not** add `.trim()`, transforms, preprocessors, or normalization.
+  - Decide and document whether `null` is accepted:
+    - If the client currently sends `null`, allow it; otherwise prefer `undefined`/`""` and let persistence store NULL if needed.
+- **Rationale**: Aligns frontend validation with optional requirement while explicitly handling empty string vs omitted and preserving whitespace-only input.
+- **Addresses**: AC #1, #4; Validation rules #1, #5, #6
 
-**Step 5: Ensure form submission payload does not force Street Address into a trimmed/normalized value**
-- **File**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx`
-- **Action**: Verify submit handler does not trim/normalize Street Address.
+**Step 5: Audit client submit/payload building to ensure no trimming/normalization is introduced**
+- **File**: `src/pages/Register.tsx` and/or `src/components/RegistrationForm.tsx` (and any helpers used, e.g., `src/utils/*`)
+- **Action**: Confirm Street Address is passed through unchanged.
 - **Details**:
-  - If there is a `buildPayload()` or mapping step, ensure it passes the field through unchanged.
-  - If the code currently trims all string fields generically, explicitly exclude Street Address from that trimming as part of this task (only if needed to meet “preserve whitespace-only”).
-- **Rationale**: Must preserve whitespace-only input as entered.
-- **Addresses**: Acceptance criteria #4; Validation rule #6
+  - Inspect submit handler and any `buildPayload()`/DTO mapping.
+  - If there is generic string trimming/sanitization applied to all fields, ensure Street Address is excluded (or keep existing behavior if it already trims—do not expand trimming as part of this change).
+  - Ensure whitespace-only input remains whitespace-only in the payload (no new normalization to `""`/`null`).
+- **Rationale**: Required by “preserve whitespace-only as entered” constraint.
+- **Addresses**: AC #4; Validation rule #6
 
-**Step 6: Update backend registration request validation to make Street Address optional**
+**Step 6: Identify and remove any conditional “Street Address required” logic (all regions/users)**
+- **File**: `src/validation/registerSchema.ts`, `src/pages/Register.tsx`, `src/components/RegistrationForm.tsx`, and any country/region logic modules
+- **Action**: Search for conditional validation or UI requirement toggles.
+- **Details**:
+  - Search for patterns like `when(country...)`, `if (country === ...) require street`, `isInternational`, etc.
+  - Ensure Street Address is optional regardless of region/user type.
+- **Rationale**: Ensures optionality applies to all users/regions.
+- **Addresses**: AC #6; Validation rule #8
+
+**Step 7: Update backend registration request validation to make Street Address optional (explicit empty-string handling)**
 - **File**: `server/validation/register.ts`
-- **Action**: Relax schema so Street Address is not required.
+- **Action**: Relax schema so Street Address is not required and does not fail when missing/empty.
 - **Details**:
-  - Change from required to optional/nullable as appropriate for the validation library.
-  - Keep existing constraints when present (max length, pattern).
-  - Ensure missing field does not produce 400/422.
-  - **Do not add** trimming/normalization; if the validator currently trims globally, exclude Street Address from trimming (only if necessary and within scope).
-- **Rationale**: Backend must accept registrations without Street Address for all users/regions.
-- **Addresses**: Acceptance criteria #3, #6; Validation rules #3, #6
+  - Ensure schema accepts:
+    - missing field (`undefined` / absent key)
+    - empty string (`""`) if client submits it
+  - Keep existing constraints when present (max length, pattern), but ensure they do not run for `""` unless that was already the behavior.
+  - Do **not** add trimming/normalization; avoid `.trim()`/coercion/transforms.
+- **Rationale**: Backend must accept registrations without Street Address and remain consistent with client behavior.
+- **Addresses**: AC #3; Validation rules #3, #5, #6
 
-**Step 7: Ensure the auth registration route passes through optional Street Address without rejecting**
+**Step 8: Audit server-side sanitization/normalization to preserve whitespace-only Street Address**
+- **File**: `server/routes/auth.ts`, plus any middleware/utilities (e.g., `server/middleware/*`, `server/utils/sanitize*`, request parsing layers)
+- **Action**: Confirm no global trim/normalization affects Street Address; if it does, exclude Street Address only.
+- **Details**:
+  - Look for middleware that trims all string fields in `req.body`.
+  - Look for validation libraries configured with “trim” defaults.
+  - Look for ORM hooks (beforeCreate/beforeSave) that normalize strings.
+  - If trimming exists today and already affects Street Address, do not change it broadly; only ensure this task does not introduce *new* trimming. If trimming would newly break AC #4 due to schema changes, scope an exclusion to Street Address only.
+- **Rationale**: Explicitly satisfies whitespace preservation requirement and avoids accidental behavior changes.
+- **Addresses**: AC #4; Validation rule #6
+
+**Step 9: Update auth registration route to not enforce Street Address and to pass it through**
 - **File**: `server/routes/auth.ts`
-- **Action**: Confirm route handler does not enforce Street Address presence and does not transform it.
+- **Action**: Remove any manual “required” checks and ensure user creation accepts optional street address.
 - **Details**:
-  - If the route destructures required fields, ensure Street Address is not treated as required.
-  - If there is a manual check like `if (!streetAddress) return error`, remove it.
-  - Ensure the user creation call can accept `undefined`/`null`/`""` depending on model expectations.
-- **Rationale**: Avoid hidden validation outside the schema.
-- **Addresses**: Acceptance criteria #3
+  - Remove checks like `if (!streetAddress) return ...`.
+  - Ensure destructuring/defaulting does not force `streetAddress` to `""` or `null` unless that is existing behavior.
+  - Ensure the value is passed to persistence unchanged (no trimming).
+- **Rationale**: Avoid hidden validation outside schema and preserve input.
+- **Addresses**: AC #3, #4
 
-**Step 8: Update the User model typing/definition to allow missing/nullable Street Address**
-- **File**: `server/models/User.ts`
-- **Action**: Make the street address property optional/nullable in the model definition.
+**Step 10: Update request/DTO/shared types so Street Address is optional end-to-end**
+- **File**: Any shared types used by client/server (if present), plus route handler types
+  - Examples: `src/types/*`, `server/types/*`, `shared/*`, or DTO definitions used in `server/routes/auth.ts`
+- **Action**: Mark street address optional/nullable in registration request types.
 - **Details**:
-  - Update TypeScript types/interfaces to reflect optionality.
-  - If using an ORM schema/model definition, ensure it allows null.
-- **Rationale**: Prevent runtime/type errors and align with DB changes.
-- **Addresses**: Persistence requirements; Acceptance criteria #1, #3
+  - If there is a `RegisterRequest` type/interface, change `streetAddress: string` to `streetAddress?: string` (and/or `string | null` depending on conventions).
+  - Ensure both client and server compile and agree on optionality.
+- **Rationale**: Prevent TS compile errors and runtime mismatch; make optionality explicit.
+- **Addresses**: AC #1–#3 (consistency)
 
-**Step 9: Add/adjust DB migration to allow NULL for street address if currently NOT NULL**
-- **File**: `server/migrations/*` (new migration)
-- **Action**: Relax DB constraint on the street address column.
+**Step 11: Update User model typing/ORM schema to allow missing/nullable Street Address**
+- **File**: `server/models/User.ts` (and ORM schema file if separate, e.g., Prisma schema / Sequelize model definition)
+- **Action**: Make street address optional/nullable in the model definition.
 - **Details**:
-  - Create a migration that alters the relevant column (e.g., `street_address`) to be nullable.
-  - Ensure migration is reversible if your tooling requires down migrations.
-  - Do not change default values unless necessary.
-- **Rationale**: Ensure persistence works when Street Address is omitted.
-- **Addresses**: Persistence requirement; Acceptance criteria #1, #3
+  - Update TS types/interfaces.
+  - Update ORM-level field definition to allow null if applicable.
+- **Rationale**: Align model with new optional behavior and DB constraints.
+- **Addresses**: Persistence requirements; AC #1, #3
 
-**Step 10: Ensure any UI that displays address renders gracefully when Street Address is missing**
-- **File**: Search for address rendering usage (likely profile/summary components; not listed but required by acceptance criteria)
-- **Action**: Update rendering to avoid showing `undefined` or crashing.
+**Step 12: Determine DB column nullability and add migration only if needed**
+- **File**: ORM schema/migrations:
+  - `server/migrations/*`
+  - plus schema definition source of truth (e.g., `prisma/schema.prisma`, Sequelize model + migration history, TypeORM entity, etc.)
+- **Action**: Verify whether the street address column is currently `NOT NULL` and identify the exact column name.
 - **Details**:
-  - Use conditional rendering or fallback to `""` when street address is null/undefined.
-  - Avoid concatenations that produce `"undefined, City"` etc.
-- **Rationale**: Required by acceptance criteria even if not directly in registration.
-- **Addresses**: Acceptance criteria #5
+  - Inspect existing migrations/schema to confirm:
+    - actual column name (`street_address` vs `streetAddress` vs `address1`)
+    - whether it is `NOT NULL`
+  - Only create a new migration if it is currently non-nullable.
+- **Rationale**: Avoid incorrect/unnecessary migrations and ensure persistence works.
+- **Addresses**: Persistence requirement; AC #1, #3
 
-**Step 11: Update any shared types between client/server (if present)**
-- **File**: Any shared DTO/types file (if the repo has one; otherwise skip)
-- **Action**: Mark street address optional in the registration request type.
+**Step 13: Add DB migration to allow NULL for street address (if currently NOT NULL)**
+- **File**: `server/migrations/<timestamp>_make_street_address_nullable.*`
+- **Action**: Alter the column to be nullable.
 - **Details**:
-  - Ensure both client and server compile with consistent expectations.
-- **Rationale**: Prevent type drift and runtime mismatch.
-- **Addresses**: Overall consistency; Acceptance criteria #1–#3
+  - Implement “up” migration to drop NOT NULL constraint.
+  - Implement “down” migration if your tooling requires it (restore NOT NULL), considering existing null data (may need a default or data cleanup strategy consistent with repo conventions).
+- **Rationale**: Ensure saving a user with missing street address does not violate DB constraints.
+- **Addresses**: Persistence requirement; AC #1, #3
+
+**Step 14: Ensure downstream address display renders gracefully when Street Address is missing**
+- **File**: Search and update all relevant UI components/helpers
+  - Search terms: `streetAddress`, `street_address`, `address1`, `addressLine1`, `fullAddress`, string concatenations with address fields
+  - Likely locations: profile pages, account settings, order summary/checkout, admin user detail views, address formatting utilities
+- **Action**: Prevent crashes and prevent rendering literal `undefined` / awkward punctuation.
+- **Details**:
+  - If there is an address formatting helper, update it to conditionally include street address only when it’s not `null/undefined` (and possibly not `""` depending on existing conventions), without trimming whitespace-only.
+  - Ensure UI does not show `"undefined"` or `"null"` strings.
+- **Rationale**: Meets acceptance criteria for graceful rendering.
+- **Addresses**: AC #5; Validation rule #7
+
+**Step 15: Update/add automated tests to cover optional Street Address behavior (frontend + backend + persistence)**
+- **File**: 
+  - Frontend: `src/pages/__tests__/Register.test.tsx` (and any form component tests)
+  - Backend: `server/__tests__/auth.register.test.ts`
+- **Action**: Add/adjust tests per task requirements.
+- **Details** (must cover):
+  - Frontend: submit succeeds with Street Address empty/omitted; no asterisk; no “required” error; whitespace-only is not newly trimmed/normalized by client.
+  - Backend: register without Street Address returns 200/201; invalid street address still rejected per existing rules; whitespace-only is not newly trimmed/normalized by server.
+  - Persistence: creating user with null/undefined street address does not throw (direct model/service test if applicable).
+- **Rationale**: Ensures end-to-end behavior and prevents regressions.
+- **Addresses**: AC #1–#4; Persistence requirement
 
 ---
 
 ### 4. VALIDATION STRATEGY
-- **Frontend**: Street Address is optional in the client schema; no required UI indicator; no required error message; submit handler passes value through unchanged (no trimming).
-- **Backend**: Registration validation schema treats Street Address as optional; route handler does not add extra required checks; if provided, existing constraints still apply.
-- **Persistence**: DB column nullable; model allows null/undefined; user creation works with missing/empty street address.
-- **Whitespace-only**: Ensure no new `.trim()`/normalization is introduced in either client schema, submit mapping, server validation, or route handler.
+- **Frontend**:
+  - Street Address field remains visible and labeled optional.
+  - Client schema accepts omitted and empty string without errors.
+  - Existing constraints still apply when a non-empty value is provided (per existing rules).
+  - Confirm no new trimming/normalization is introduced in schema or submit mapping; whitespace-only remains whitespace-only.
+- **Backend**:
+  - Registration endpoint accepts missing/empty street address without 400/422.
+  - Existing constraints still enforced when street address is provided (non-empty).
+  - Audit and prevent new trimming/normalization; if global trimming exists, ensure this change does not newly affect Street Address (or exclude it narrowly if required).
+- **Persistence**:
+  - DB allows NULL if needed; model allows optional/nullable.
+  - User creation works with `undefined`/`null`/`""` depending on existing conventions.
+- **Downstream rendering**:
+  - Address display does not crash and does not render literal `undefined`.
 
 ---
 
 ### 5. INTEGRATION POINTS
 - `Register.tsx` / `RegistrationForm.tsx` integrates with `src/validation/registerSchema.ts` via the existing form library resolver/validator.
-- `server/routes/auth.ts` integrates with `server/validation/register.ts` for request validation and with `server/models/User.ts` (and ORM) for persistence.
-- DB migration integrates with the ORM/migration toolchain already used in `server/migrations/*`.
+- Client submit handler integrates with API request DTO/type (shared or local) and must pass Street Address through unchanged.
+- `server/routes/auth.ts` integrates with `server/validation/register.ts` for request validation and with the user creation service/model for persistence.
+- `server/models/User.ts` (and ORM schema) integrates with DB migrations to enforce nullability.
+- Address display components integrate with user profile data and any address formatting helpers.
 
 ---
 
 ### 6. EDGE CASES & CONSIDERATIONS
-- **Empty vs omitted**: Some form libs submit `""` for empty inputs; backend should accept both `""` and missing field (and possibly `null` if used).
-- **Whitespace-only**: Must be preserved; avoid adding trimming anywhere. If there is existing global trimming, do not expand it; only adjust if it newly breaks the requirement.
-- **Downstream formatting**: Any address formatting/joining must handle missing street address without producing awkward punctuation or `undefined`.
-- **All regions/users**: Ensure no conditional validation re-requires Street Address based on region/user type.
+- **Empty vs omitted**: Some form libs submit `""` for empty inputs; backend validation must explicitly accept both absent and `""`.
+- **Whitespace-only**: Must be preserved; do not add `.trim()` or transforms. Audit existing sanitizers/middleware/hooks to ensure this change doesn’t introduce new trimming.
+- **Conditional validation by region**: Remove/override any country/region-based requirement so Street Address is optional for all.
+- **Downstream formatting**: Avoid `"undefined, City"` and similar; use conditional joins without trimming whitespace-only.
+- **DB down migration risk**: If making column NOT NULL again, existing nulls could break; follow repo conventions (may require setting default empty string or preventing down migration in prod workflows).
 
 ---
 
 ### 7. IMPLEMENTATION CONSTRAINTS
-- Focus only on making Street Address optional end-to-end (UI + validation + persistence + graceful display).
-- Do not add new libraries.
-- Do not introduce new trimming/normalization behavior for Street Address.
-- Do not include unit tests in this plan (handled by a separate node).
-- Follow existing codebase conventions for i18n, validation schemas, migrations, and typing.
+- Focus ONLY on making Street Address optional end-to-end (UI + validation + persistence + graceful display).
+- Use existing form and validation libraries; do not add new dependencies.
+- Do not introduce new trimming/normalization behavior for Street Address; preserve whitespace-only input as entered.
+- Ensure optionality applies to all users/regions (no conditional requirement).
+- Treat address as PII: do not add verbose logging.
+- Follow existing codebase conventions for i18n, schema validation, migrations, and typing.
