@@ -67,13 +67,16 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should the Street Address field remain visible on the registration page but labeled as optional, or should it be removed from registration entirely?"
+      "question": "Should the Street Address field remain visible on the registration page but labeled as optional, or should it be removed from registration entirely?",
+      "answer":"keep the field, just make value optional"
     },
     {
-      "question": "If a user enters only whitespace for Street Address, should it be stored as empty/NULL (preferred) or preserved as-is?"
+      "question": "If a user enters only whitespace for Street Address, should it be stored as empty/NULL (preferred) or preserved as-is?",
+      "answer":"preserve as it is"
     },
     {
-      "question": "Are there any business flows that must still require Street Address at registration for specific user types/regions (e.g., B2B accounts), or is it optional for everyone?"
+      "question": "Are there any business flows that must still require Street Address at registration for specific user types/regions (e.g., B2B accounts), or is it optional for everyone?",
+      "answer":"no"
     }
   ],
   "llmFileReferences": [],
