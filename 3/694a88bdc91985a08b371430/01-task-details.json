@@ -67,13 +67,16 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should Street Address be optional for all user types/regions, or only for specific countries/flows?"
+      "question": "Should Street Address be optional for all user types/regions, or only for specific countries/flows?",
+      "answer":"yes optional for all"
     },
     {
-      "question": "If a user leaves Street Address blank, should the UI label explicitly show it as “optional” (e.g., 'Street Address (optional)') or simply remove the required indicator?"
+      "question": "If a user leaves Street Address blank, should the UI label explicitly show it as “optional” (e.g., 'Street Address (optional)') or simply remove the required indicator?",
+      "answer":"remove the required indicator"
     },
     {
-      "question": "When Street Address is omitted, should the system store it as null, empty string, or omit the field entirely (preference for reporting/exports)?"
+      "question": "When Street Address is omitted, should the system store it as null, empty string, or omit the field entirely (preference for reporting/exports)?",
+      "answer":"null or empty is fine"
     }
   ],
   "llmFileReferences": [],
