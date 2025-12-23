@@ -83,13 +83,16 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Which ORM/database is used (e.g., Prisma/TypeORM/Sequelize/Knex) and what is the exact column/path for street address in the DB schema (e.g., users.address_street vs JSON address)?"
+      "question": "Which ORM/database is used (e.g., Prisma/TypeORM/Sequelize/Knex) and what is the exact column/path for street address in the DB schema (e.g., users.address_street vs JSON address)?",
+      "answer":"mongodb with zod schema validation"
     },
     {
-      "question": "Where is the shared contract defined (OpenAPI spec file path, shared types package, or server-only Zod schema) that needs updating for `address.street` optionality?"
+      "question": "Where is the shared contract defined (OpenAPI spec file path, shared types package, or server-only Zod schema) that needs updating for `address.street` optionality?",
+      "answer":"let aider plan it"
     },
     {
-      "question": "What test stack is used in this repo (Jest vs Vitest, React Testing Library, supertest), and where are existing registration tests located?"
+      "question": "What test stack is used in this repo (Jest vs Vitest, React Testing Library, supertest), and where are existing registration tests located?",
+      "answer":"let aider plan it"
     }
   ],
   "llmFileReferences": [],
