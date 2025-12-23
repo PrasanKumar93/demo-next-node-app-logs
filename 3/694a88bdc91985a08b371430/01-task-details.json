@@ -1,0 +1,13 @@
+{
+  "taskId": 3,
+  "name": "make street address non mandatory in registration page",
+  "createdAt": "2025-12-23T12:18:48.000Z",
+  "updatedAt": "2025-12-23T12:18:48.000Z",
+  "allAssignees": [
+    "PrasanKumar93"
+  ],
+  "assignee": "PrasanKumar93",
+  "taskStatus": "TODO",
+  "taskCategory": "",
+  "priority": ""
+}
