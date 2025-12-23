@@ -70,13 +70,16 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should Street address be optional for all users, or only under certain conditions (e.g., specific countries, account types, or when shipping is not needed)?"
+      "question": "Should Street address be optional for all users, or only under certain conditions (e.g., specific countries, account types, or when shipping is not needed)?",
+      "answer":"yes optional for all"
     },
     {
-      "question": "If the address section contains other fields (city/state/zip), should those remain required at registration, or is the intent to make only Street address optional?"
+      "question": "If the address section contains other fields (city/state/zip), should those remain required at registration, or is the intent to make only Street address optional?",
+      "answer":"keep other fields as it is"
     },
     {
-      "question": "Should the UI explicitly label the field as “Optional”, or is removing the required indicator sufficient?"
+      "question": "Should the UI explicitly label the field as “Optional”, or is removing the required indicator sufficient?",
+      "answer":"yes, remove the asterisk symbol "
     }
   ],
   "llmFileReferences": [
