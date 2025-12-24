@@ -1,223 +1,299 @@
 ### 1. CODEBASE ANALYSIS
-Aider should first locate where `streetAddress` is defined/validated across the stack and identify all “required” enforcement points. Expect three layers:
+Goal: find every place where `streetAddress` (and variants) is enforced as required across **UI**, **frontend validation**, **API validation**, **controller/service mapping**, **ORM/model**, and **DB schema**, and ensure whitespace-only values are not trimmed/coerced.
 
-- **Frontend UI/forms**
-  - Registration page and a reusable registration form component (likely `src/pages/Registration.*`, `src/components/forms/StudentRegistrationForm.*`).
-  - Student edit/update page and form component (likely `src/pages/**/EditStudent.*`, `src/components/forms/StudentEditForm.*`).
-  - A shared validation schema (likely `src/validation/*student*.*`) using a library such as Yup/Zod or custom validators.
-  - “Required” may be enforced via:
-    - schema rules (`required()`, `min(1)`, `nonempty()`)
-    - field props (`required`, `aria-required`, asterisk rendering)
-    - submit button disable logic (e.g., `isValid` depends on required fields)
+**Repo-wide discovery (must do before edits)**
+- Search terms (case-insensitive) across `src/`, `server/`, `migrations/`, and any `shared/` or `packages/` folders:
+  - `streetAddress`, `street_address`, `street address`
+  - common alternates: `addressLine1`, `address1`, `line1`, `street`, `addr1`
+  - validation keywords near those fields: `required`, `nonempty`, `min(1)`, `presence`, `allowNull`, `NOT NULL`, `trim`, `transform`, `sanitize`
+- Identify:
+  1. Registration form component(s) and edit/update form component(s)
+  2. Shared frontend validation schema(s) used by both flows
+  3. Backend request validators/DTOs for create + update
+  4. Any controller/service “manual required checks”
+  5. Any payload-building logic that drops falsy values (especially `""`)
+  6. ORM schema/model constraints and DB column nullability
+  7. Any sanitization middleware (frontend or backend) that trims/coerces strings
+  8. API contract types/docs (OpenAPI, TS types, generated clients) that mark `streetAddress` required
 
-- **Backend API validation**
-  - Create and update endpoints (likely `server/routes/*student*.*` and/or controllers).
-  - Request validators/DTO schemas (likely `server/validators/*student*.*`).
-  - “Required” may be enforced via:
-    - schema validators (Joi/Zod/class-validator)
-    - explicit checks in controller/service
-    - model-level validations
-
-- **Persistence / DB schema**
-  - Student model definition (likely `server/models/*Student*.*` or ORM schema).
-  - DB migration history (`migrations/*`) to see if `street_address` / `streetAddress` is `NOT NULL`.
-  - Ensure the column allows `NULL` (and that empty string is also acceptable per existing conventions).
-
-Key behavioral constraint to preserve:
-- **No trimming/normalization changes**: do not add `.trim()`, `.transform()`, or middleware that converts whitespace-only to empty/null. If such trimming already exists, do not expand it as part of this task; only remove “required” constraints.
+**DB nullability verification (explicit)**
+- Determine the actual storage field and table:
+  - Inspect ORM schema files (e.g., `prisma/schema.prisma`, `sequelize` model definitions, `typeorm` entities, etc.)
+  - Inspect existing migrations for the student table creation/alter statements
+  - If available in repo tooling, check schema snapshot or SQL definition
+- Confirm whether the column is `NOT NULL` and whether there are constraints/triggers that modify values.
 
 ---
 
 ### 2. IMPLEMENTATION STRATEGY
-Make `streetAddress` optional consistently in **all** create/update flows by:
-1. Removing “required” indicators and client-side required validation for `streetAddress` in registration and edit forms.
-2. Updating frontend validation schemas so `streetAddress` is optional but still respects existing constraints **when provided** (e.g., max length).
-3. Updating backend request validation/DTOs so `streetAddress` is optional on both create and update; accept missing, `null`, and `""`.
-4. Ensuring persistence allows `NULL` (migration only if needed) and model-level validations do not require presence.
-5. Keep API behavior: if provided (including whitespace-only), store and return it unchanged.
+Make `streetAddress` optional **consistently** for both **create** and **update** flows by changing three layers in lockstep:
+
+1. **Frontend UI + validation**
+   - Remove required indicator/props (`required`, `aria-required`, asterisk) for Street Address in registration and edit forms.
+   - Update frontend validation schema(s) so `streetAddress` accepts: `undefined` (omitted), `null`, and `""` (empty string).
+   - Preserve existing constraints **only when a value is provided** (e.g., max length), without adding trimming/normalization.
+   - Ensure payload builders do not drop `""` (fix truthy checks).
+
+2. **Backend API validation + mapping**
+   - Update create and update request validators/DTOs to accept `streetAddress` as optional and allow `null` and `""`.
+   - Remove any manual “required” checks in controllers/services.
+   - Ensure update mapping supports:
+     - omission => do not change existing value
+     - explicit `""` or `null` => clear/set accordingly
+   - Ensure no new trimming/normalization is introduced; audit existing sanitizers.
+
+3. **Persistence/DB**
+   - Align ORM/model nullability with DB nullability.
+   - If DB column is `NOT NULL`, add a migration to allow `NULL` (only if needed).
+   - Ensure serialization/deserialization does not coerce whitespace-only to empty/null.
+
+Also: update API contract/docs/types if they still mark `streetAddress` required, and include documentation + deployment steps per checklist.
 
 ---
 
 ### 3. COMPREHENSIVE STEP-BY-STEP IMPLEMENTATION PLAN
 
-**Step 1: Inventory all `streetAddress` touchpoints**
-- **Files**: (discovered via repo search)
-  - `src/**` for `streetAddress`, `street address`, `street_address`
-  - `server/**` for the same
-  - `migrations/**` and ORM schema files
-- **Action**: Identify every place where `streetAddress` is marked required or validated as non-empty.
+**Step 1: Repo-wide inventory of Street Address field and constraints**
+- **File**: N/A (discovery step)
+- **Action**: Perform targeted searches and map all touchpoints.
 - **Details**:
-  - Find schema rules like `required`, `nonempty`, `min(1)`, `presence: true`, `NOT NULL`.
-  - Find UI props like `required`, `aria-required`, label asterisks.
-- **Rationale**: Ensures optionality is consistent across registration + edit/update and avoids mismatched validation.
-- **Addresses**: All acceptance criteria indirectly (completeness).
+  - Search in `src/**` for field rendering, required props, label asterisks, and schema usage.
+  - Search in `server/**` for validators/DTOs, controllers, services, and any `if (!streetAddress)` checks.
+  - Search for payload builders that do `if (value) obj.key = value` (drops `""`).
+  - Search for sanitizers: `.trim()`, `.transform()`, `sanitize`, `normalize`, middleware that mutates request bodies.
+  - Search for API contract definitions: `openapi.*`, `swagger.*`, `api-types.*`, `StudentCreateRequest`, etc.
+- **Rationale**: Prevent missing a required enforcement point or a coupled validation.
+- **Addresses**: Completeness for AC1–AC5; Validation rules #1–#10.
 
-**Step 2: Update registration UI field to not be required**
-- **File**: `src/pages/Registration.*` (or wherever the registration form is composed)
-- **Action**: Remove any required marker/prop for Street Address.
+**Step 2: Identify and verify DB column/table and nullability**
+- **File**: ORM schema + migrations (e.g., `prisma/schema.prisma`, `server/models/Student.*`, `migrations/*`)
+- **Action**: Determine whether the DB enforces `NOT NULL` for street address and the exact column name.
 - **Details**:
-  - If the input component receives `required`, set it to false/remove it.
-  - Remove `aria-required="true"` if present.
-  - Remove asterisk rendering for this field only (keep for other required fields).
-  - Ensure submit button enablement does not depend on streetAddress being non-empty.
-- **Rationale**: UI must not block submission or show required indicator.
-- **Addresses**: AC1, AC3; Validation rules UI #3.
+  - Locate the student table definition and the street address column (`street_address` vs `streetAddress`).
+  - Confirm ORM field config (`nullable`/`allowNull`) and DB constraint (`NOT NULL`).
+  - Record whether DB accepts `NULL` today; if not, plan migration in Step 11.
+- **Rationale**: Ensures persistence won’t reject inserts/updates when streetAddress is missing/null.
+- **Addresses**: AC1–AC2; Validation rule #8.
 
-**Step 3: Update registration form component validation**
-- **File**: `src/components/forms/StudentRegistrationForm.*`
-- **Action**: Make `streetAddress` optional in the form’s validation rules.
-- **Details** (follow existing validation library pattern):
-  - If Yup: change from `yup.string().required(...)` to `yup.string().notRequired()` (and keep `.max(...)` etc.).
-  - If Zod: change from `z.string().min(1)`/`nonempty()` to `z.string().optional()` or `z.union([z.string(), z.undefined()])`; if `null` is allowed, use `.nullable()` as well.
-  - Ensure empty string `""` is accepted (some schemas treat `""` as invalid if `min(1)` exists).
+**Step 3: Update registration UI to remove required indicator/props**
+- **File**: `src/pages/Registration.*` and/or `src/components/forms/StudentRegistrationForm.*` (actual paths from Step 1)
+- **Action**: Make Street Address visually and semantically optional.
+- **Details**:
+  - Remove `required` prop and `aria-required="true"` for Street Address input.
+  - Remove any asterisk/required label rendering for this field.
+  - Ensure any “required fields” helper text doesn’t list Street Address.
+- **Rationale**: UI must not block submission or mislead users.
+- **Addresses**: AC1, AC3; Validation rule UI #3.
+
+**Step 4: Update shared/reusable Field/Input component behavior (if applicable)**
+- **File**: `src/components/*Field*.*`, `src/components/*Input*.*`, design system components (as found)
+- **Action**: Ensure Street Address isn’t implicitly marked required by schema introspection or default props.
+- **Details**:
+  - If the component auto-adds `required` based on schema metadata, ensure Street Address metadata is optional.
+  - If required-asterisk is driven by a `requiredFields` list, remove Street Address from that list.
+- **Rationale**: Prevent hidden required indicators even after form-level changes.
+- **Addresses**: AC3; Validation rule UI #3.
+
+**Step 5: Update frontend validation schema for create (registration)**
+- **File**: `src/validation/*student*.*` and/or schema co-located with registration form
+- **Action**: Make `streetAddress` optional and accept `undefined`, `null`, and `""`.
+- **Details** (adapt to actual library):
+  - Remove `required()` / `nonempty()` / `min(1)` constraints.
+  - Keep existing constraints that should apply when provided (e.g., `.max(…)`), ensuring they do not reject `""` unless that was explicitly desired (it is not for this task).
+  - Explicitly allow `null` if the schema currently rejects it.
   - Do **not** add `.trim()` or transforms.
 - **Rationale**: Client-side validation must allow empty/missing street address.
 - **Addresses**: AC1, AC3; Validation rules #1, #4, #9.
 
-**Step 4: Update edit/update UI field to not be required**
-- **File**: `src/pages/**/EditStudent.*`
-- **Action**: Remove required indicator/props for Street Address in edit page.
+**Step 6: Update edit/update UI to remove required indicator/props**
+- **File**: `src/pages/**/EditStudent.*` and/or `src/components/forms/StudentEditForm.*`
+- **Action**: Make Street Address optional in edit/update screens.
 - **Details**:
-  - Same as registration: remove `required`, `aria-required`, asterisk.
-  - Ensure clearing the field does not block save.
-- **Rationale**: Edit flow must allow clearing street address.
-- **Addresses**: AC2, AC3; Validation rules UI #3.
+  - Remove `required` and `aria-required` for Street Address.
+  - Remove required asterisk/label indicator for this field.
+  - Ensure clearing the field does not disable Save due to “required” logic.
+- **Rationale**: Users must be able to clear Street Address and save.
+- **Addresses**: AC2, AC3; Validation rule UI #3.
 
-**Step 5: Update edit/update form component validation**
-- **File**: `src/components/forms/StudentEditForm.*`
-- **Action**: Make `streetAddress` optional in edit/update validation schema.
+**Step 7: Update frontend validation schema for update (edit/save)**
+- **File**: `src/validation/*student*.*` (update schema) and/or edit form schema
+- **Action**: Make `streetAddress` optional for update and accept `undefined`, `null`, and `""`.
 - **Details**:
-  - If update schema differs from create schema, update both.
-  - Ensure both “omit field” and “set to empty string” pass validation.
-  - Preserve any max length/format checks when a non-empty value is provided.
+  - For PATCH semantics: omission should be valid; explicit empty string should be valid.
+  - Preserve existing constraints when non-empty values are provided (e.g., max length).
   - No trimming/transforms.
-- **Rationale**: Save must succeed when field is cleared or omitted.
+- **Rationale**: Update must succeed when field is omitted or cleared.
 - **Addresses**: AC2, AC3; Validation rules #2, #4, #9.
 
-**Step 6: Update shared frontend student validation schema(s)**
-- **File**: `src/validation/*student*.*` (or equivalent shared schema module)
-- **Action**: Make `streetAddress` optional in any shared create/update schemas.
+**Step 8: Fix frontend payload construction to not drop empty string**
+- **File**: API client layer / submit handlers (e.g., `src/api/*`, `src/services/*`, form submit functions)
+- **Action**: Ensure `streetAddress: ""` is sent when user clears it; omission only when truly untouched/undefined.
 - **Details**:
-  - If there is a single schema used by both forms, update it once.
-  - If there are separate `createStudentSchema` and `updateStudentSchema`, update both.
-  - Ensure schema accepts:
-    - missing key
-    - `""`
-    - `null` (only if frontend sends null; otherwise optional is enough)
-  - Keep existing constraints (e.g., max length) without adding normalization.
-- **Rationale**: Prevent regressions where one form uses shared schema and still enforces required.
-- **Addresses**: AC1–AC3; Validation rules #1–#4, #9.
+  - Replace patterns like `if (streetAddress) payload.streetAddress = streetAddress` with `if (streetAddress !== undefined) ...`
+  - Ensure `null` is passed through if UI uses null to clear.
+  - Confirm registration payload can omit the field entirely when blank (also acceptable).
+- **Rationale**: Prevent “falsy filtering” from breaking AC2/AC4.
+- **Addresses**: AC2, AC4; Validation rules #6–#7, #9.
 
-**Step 7: Update backend create-student request validation**
-- **File**: `server/validators/*student*.*` (create DTO/schema)
-- **Action**: Mark `streetAddress` optional and allow empty string.
+**Step 9: Update backend create-student request validation to accept missing/null/empty**
+- **File**: `server/validators/*student*.*` (create schema/DTO)
+- **Action**: Mark `streetAddress` optional and allow `null` and `""`.
 - **Details**:
-  - Remove `required`/presence constraints.
-  - Ensure validator does not reject `""`.
-  - If validator supports `null`, allow it if API may receive it.
-  - Do not add trimming/transform steps.
-- **Rationale**: Backend must accept missing/empty streetAddress on create.
+  - Remove required/presence constraints.
+  - Ensure validator accepts:
+    - missing key
+    - `streetAddress: ""`
+    - `streetAddress: null`
+  - Keep existing max length/format constraints for non-empty values only (avoid rejecting `""`).
+  - Do not add trimming/transform.
+- **Rationale**: Backend must not reject create requests without street address.
 - **Addresses**: AC1, AC3; Validation rules #5, #7, #9.
 
-**Step 8: Update backend update-student request validation**
-- **File**: `server/validators/*student*.*` (update DTO/schema)
-- **Action**: Mark `streetAddress` optional and allow empty string.
+**Step 10: Update backend update-student request validation to accept missing/null/empty**
+- **File**: `server/validators/*student*.*` (update schema/DTO)
+- **Action**: Mark `streetAddress` optional and allow `null` and `""`.
 - **Details**:
-  - For PATCH-like semantics: omission should mean “no change”; explicit `""` should mean “set empty string”.
-  - Ensure schema allows both.
+  - Ensure omission is valid (no change).
+  - Ensure explicit `""` and `null` are valid (clear/set).
+  - Preserve other required fields behavior (do not loosen unrelated requirements).
   - No trimming/transform.
-- **Rationale**: Backend must accept clearing streetAddress and not error when omitted.
-- **Addresses**: AC2, AC3; Validation rules #6, #7, #9.
+- **Rationale**: Backend must accept clearing street address and not error when omitted.
+- **Addresses**: AC2, AC3; Validation rules #6–#7, #9, #10.
 
-**Step 9: Ensure route/controller/service does not enforce required streetAddress**
-- **Files**: `server/routes/*student*.*` and any controller/service modules they call
-- **Action**: Remove any manual checks that reject missing/empty streetAddress.
+**Step 11: Update backend controller/service mapping to avoid manual required checks and falsy filtering**
+- **File**: `server/routes/*student*.*`, controllers/services used by create/update
+- **Action**: Remove any manual “streetAddress required” logic and ensure mapping preserves empty/whitespace.
 - **Details**:
-  - Look for code like `if (!streetAddress) return 400`.
-  - Ensure mapping logic includes `streetAddress` when present, and safely handles undefined/null.
-  - For update: ensure the update payload can set `streetAddress` to `""` (don’t filter falsy values with patterns like `if (streetAddress) obj.streetAddress = streetAddress`).
-- **Rationale**: Even with schema changes, controller logic can still block or drop empty strings.
+  - Remove checks like `if (!streetAddress) return 400`.
+  - Fix update mapping patterns like:
+    - `if (body.streetAddress) update.streetAddress = body.streetAddress` (drops `""`)
+    - Replace with `if ('streetAddress' in body) update.streetAddress = body.streetAddress`
+  - Ensure create mapping passes through `""`, `null`, and whitespace-only unchanged.
+- **Rationale**: Even with validator changes, controller logic can still reject or drop values.
 - **Addresses**: AC1–AC4; Validation rules #5–#7, #9.
 
-**Step 10: Update model-level validation (if any)**
-- **File**: `server/models/*Student*.*` (or ORM model definition)
-- **Action**: Remove presence/required validation for street address.
+**Step 12: Align ORM/model validation with optional streetAddress**
+- **File**: `server/models/*Student*.*` or ORM entity/schema files
+- **Action**: Ensure model does not enforce presence and allows null.
 - **Details**:
-  - If using ORM validations (e.g., Sequelize `allowNull: false`, Rails `validates :street_address, presence: true`), change to allow null and remove presence validation.
-  - Keep other validations intact.
-- **Rationale**: Prevent persistence-layer rejection.
-- **Addresses**: AC1–AC4; Validation rules #8.
+  - Remove model-level presence validation (e.g., Rails `presence: true`, Sequelize `allowNull: false`).
+  - Ensure ORM field is nullable if DB is nullable.
+  - Ensure serialization/deserialization does not coerce `null`/`""`/whitespace.
+- **Rationale**: Prevent persistence-layer rejection and unintended coercion.
+- **Addresses**: AC1–AC4; Validation rules #7–#9.
 
-**Step 11: Update DB schema to allow NULL (migration only if needed)**
-- **Files**: `migrations/*` (new migration if current schema is NOT NULL)
-- **Action**: Alter street address column to be nullable.
+**Step 13: Add DB migration if (and only if) street address is NOT NULL**
+- **File**: `migrations/*` (new migration)
+- **Action**: Alter the student street address column to allow NULL.
 - **Details**:
-  - Detect actual column name (`street_address` vs `streetAddress`) and table.
-  - Create migration using existing migration tool conventions.
-  - Only change nullability; do not modify defaults or add triggers that trim.
-- **Rationale**: Inserts/updates must not fail due to NOT NULL constraint.
-- **Addresses**: AC1–AC2; Validation rules #8.
+  - Use the project’s migration tool conventions.
+  - Only change nullability; do not add defaults, triggers, or transforms.
+  - Ensure down migration restores prior state if required by repo standards.
+- **Rationale**: DB must accept inserts/updates without street address.
+- **Addresses**: AC1–AC2; Validation rule #8.
 
-**Step 12: Verify API response/serialization preserves whitespace**
-- **Files**: Any serialization/mapping layer (often in controller/service)
-- **Action**: Ensure no `.trim()` or normalization is applied to `streetAddress`.
+**Step 14: Audit existing sanitization/normalization to ensure whitespace-only is preserved**
+- **File**: Any request sanitizers/middleware, frontend input normalizers, API client interceptors
+- **Action**: Confirm no trimming/coercion is applied to `streetAddress`.
 - **Details**:
-  - If there is a global sanitizer, do not change it; just ensure this task doesn’t introduce new trimming.
-  - Ensure `streetAddress: "   "` round-trips.
-- **Rationale**: Explicit requirement to preserve whitespace-only values.
-- **Addresses**: AC4; Validation rules #9.
+  - If there is an existing global trim middleware, do not change it broadly in this task; instead ensure `streetAddress` is not newly added to trimming lists.
+  - Verify mapping layers do not call `.trim()` on address fields.
+- **Rationale**: Requirement explicitly demands whitespace-only values round-trip unchanged.
+- **Addresses**: AC4; Validation rule #9.
 
-**Step 13: Update any inline docs/UI helper text that claims it’s required**
-- **Files**: Any form label/help text modules, possibly `src/components/forms/*` or localization files
-- **Action**: Remove “required” wording for Street Address only.
+**Step 15: Update API contract types/docs/comments that mark streetAddress required**
+- **File**: OpenAPI/Swagger specs, shared TS types, API docs markdown, inline comments
+- **Action**: Make `streetAddress` optional in contracts/documentation.
 - **Details**:
-  - Keep other required field messaging unchanged.
-- **Rationale**: Consistency and avoids user confusion.
-- **Addresses**: Supports AC3.
+  - Update request schema: remove from `required` list; allow `null` if supported.
+  - Ensure generated client types (if any) reflect optionality.
+- **Rationale**: Prevent consumer mismatch and future regressions.
+- **Addresses**: Supports AC1–AC3; aligns with task notes.
+
+**Step 16: Tests planning handoff (do not implement here)**
+- **File**: N/A (planning step only; implementation in test node)
+- **Action**: Enumerate concrete test cases to add/update for FE + BE.
+- **Details**:
+  - Frontend: registration submit with empty streetAddress; edit save after clearing; no required indicator/aria-required.
+  - Backend: create without streetAddress; create with `""`; create with `null`; update omitting; update with `""`; update with `null`.
+  - Whitespace-only preservation: `"   "` stored/returned unchanged.
+  - Regression: other required fields still fail.
+- **Rationale**: Task scope includes tests; this plan must explicitly cover them even if implemented elsewhere.
+- **Addresses**: AC1–AC5; Validation rules #1–#10.
+
+**Step 17: Task documentation + deployment steps**
+- **File**: `CHANGELOG.md` / release notes / internal docs (whatever repo uses), deployment runbook
+- **Action**: Document behavior change and deployment requirements.
+- **Details**:
+  - Document that Street Address is now optional for create/update.
+  - If migration added: include migration execution steps and rollback notes.
+  - Note no trimming/normalization changes.
+- **Rationale**: Satisfy checklist items (documentation + deployment) and reduce rollout risk.
+- **Addresses**: Checklist compliance; operational readiness.
 
 ---
 
 ### 4. VALIDATION STRATEGY
-Implementation should satisfy validations by ensuring:
+After implementation (and later tests), verify:
 
-- **Frontend**
-  - Street Address field has no required UI attributes/indicators.
-  - Form schema allows `streetAddress` to be `undefined` or `""` without errors.
-  - Any “build payload” logic includes empty string when user clears it (no falsy filtering).
+**Frontend**
+- Street Address field:
+  - no required asterisk
+  - no `required` attribute
+  - no `aria-required=true`
+- Registration:
+  - submit succeeds with streetAddress omitted and with `""`
+- Edit/update:
+  - save succeeds when streetAddress cleared to `""` (and/or set to `null` if UI uses null)
+- Payload inspection:
+  - clearing field results in request containing `streetAddress: ""` (not dropped)
+- Whitespace:
+  - entering `"   "` remains `"   "` in payload (no trim)
 
-- **Backend**
-  - Create/update validators treat `streetAddress` as optional and accept `""` (and `null` if applicable).
-  - Controllers/services do not reject or drop empty string values.
-  - Persistence accepts NULL (and empty string) without constraint violations.
+**Backend**
+- Create endpoint accepts:
+  - missing `streetAddress`
+  - `streetAddress: ""`
+  - `streetAddress: null`
+- Update endpoint accepts:
+  - omission (no change)
+  - explicit `""` and `null` (clears/sets)
+- Ensure no 400/422 due solely to streetAddress missing/empty.
+- Confirm response/DB readback returns the same value (including whitespace-only).
 
-- **No trimming**
-  - No new `.trim()`/transform introduced in either frontend or backend for this field.
+**DB/ORM**
+- If streetAddress is null, insert/update succeeds (no NOT NULL violation).
+- ORM schema matches DB nullability.
 
 ---
 
 ### 5. INTEGRATION POINTS
-- **Frontend form library integration**: Update the schema/resolver and field props in the same way other optional fields are handled in the repo.
-- **API contract**: Ensure request DTOs and controllers align so omission vs explicit empty string behaves correctly (especially for update).
-- **ORM/DB**: Model nullability and DB column nullability must match to avoid runtime errors.
+- **Form library ↔ schema resolver**: ensure optionality is reflected both in UI props and schema rules.
+- **Frontend submit handler ↔ API client**: ensure payload builder does not drop `""` and supports omission vs explicit clear.
+- **API validator ↔ controller/service**: validator must allow optional; controller must not re-enforce required or filter falsy.
+- **Service ↔ ORM update semantics**: update logic must distinguish:
+  - field absent (do nothing)
+  - field present with `""`/`null` (set/clear)
+- **ORM ↔ DB migrations**: nullability aligned; migration applied in deployment.
+- **API contract/docs ↔ implementation**: required lists/types updated to match behavior.
 
 ---
 
 ### 6. EDGE CASES & CONSIDERATIONS
-- **Update semantics**:
-  - Omitted `streetAddress` should not overwrite existing value.
-  - Explicit `streetAddress: ""` should clear it (set to empty string) if that’s what UI sends.
-- **Null vs empty string**:
-  - UI may send `""` when cleared; some APIs may send `null`. Backend should accept both if feasible without breaking conventions.
-- **Max length/format**:
-  - Keep existing constraints when a non-empty value is provided; don’t accidentally loosen/tighten.
-- **Fનલsy filtering bug**:
-  - Common issue: `if (streetAddress) ...` drops `""`. Must use checks like `if (streetAddress !== undefined)`.
+- **PATCH vs PUT semantics**: If update endpoint is PUT-like (full replace), ensure missing streetAddress doesn’t inadvertently null it unless that’s current behavior; align with existing conventions.
+- **Falsy filtering**: Must fix both FE and BE mapping to not drop `""`.
+- **Null vs empty string**: Accept both on backend; store as provided (do not coerce).
+- **Whitespace-only**: Must be accepted and preserved; audit for any existing trim middleware that could violate this.
+- **Coupled address validation**: Ensure city/state/zip are not conditionally required based on streetAddress (unless already intended); do not change other fields’ requiredness.
+- **Max length/format**: Keep existing constraints for non-empty values; ensure they don’t accidentally run on `null`/`undefined`.
+- **PII logging**: Do not add logs that print streetAddress.
 
 ---
 
 ### 7. IMPLEMENTATION CONSTRAINTS
 - Focus ONLY on making Street Address optional in registration + edit/update flows.
-- DO NOT add unit tests in this node.
-- Follow existing codebase conventions for validation, forms, DTOs, and migrations.
+- DO NOT write actual unit/integration tests in this node (handled separately), but the plan must specify them.
+- Follow existing codebase conventions for validation, forms, DTOs, migrations, and docs.
 - Maintain backward compatibility and do not change auth/authz.
 - Do not introduce trimming/normalization; preserve whitespace-only values exactly.
+- Ensure type safety (update TS types/contracts where applicable) and avoid widening unrelated validations.
