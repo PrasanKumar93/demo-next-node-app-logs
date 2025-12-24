@@ -68,13 +68,16 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should Street Address be optional only on initial registration, or also optional on any subsequent edit/update student flows?"
+      "question": "Should Street Address be optional only on initial registration, or also optional on any subsequent edit/update student flows?",
+      "answer":"optional in all flows"
     },
     {
-      "question": "When a user enters only whitespace for Street Address, should the system trim and store it as empty/null, or preserve as-is?"
+      "question": "When a user enters only whitespace for Street Address, should the system trim and store it as empty/null, or preserve as-is?",
+      "answer":"preserve as is"
     },
     {
-      "question": "Are there any downstream business processes (e.g., billing, shipping, reporting) that require street address at a later step, and should we add any UI messaging like 'optional (can be added later)'?"
+      "question": "Are there any downstream business processes (e.g., billing, shipping, reporting) that require street address at a later step, and should we add any UI messaging like 'optional (can be added later)'?",
+      "answer":"No issues"
     }
   ],
   "llmFileReferences": [],
