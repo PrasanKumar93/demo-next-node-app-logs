@@ -9,5 +9,149 @@
   "assignee": "PrasanKumar93",
   "taskStatus": "TODO",
   "taskCategory": "",
-  "priority": ""
+  "priority": "",
+  "llmTaskExplanation": "Update the product’s visual theme by changing the primary brand color palette from a green-dominant scheme to an orange-dominant scheme across the application UI. This includes updating the global theme tokens (primary/secondary colors, hover/active states, focus rings, links, buttons, badges, alerts, and any accent elements) and ensuring consistent appearance in both light and dark modes (if supported). The change should be implemented at the theme/tokens level (e.g., CSS variables, Tailwind config, MUI/Chakra theme, SCSS variables) rather than ad-hoc per-component overrides, except where necessary for legacy components. After updating tokens, verify key UI surfaces (navigation, product listing cards, product detail pages, checkout/cart, forms) render with the new orange primary color and maintain sufficient contrast and accessibility.",
+  "validations": [
+    "Primary brand color is updated from greenish to orange in the global theme source (single source of truth), not only in isolated components.",
+    "All interactive states (default/hover/active/disabled) for primary buttons and links use the new orange palette and remain visually distinct.",
+    "Focus indicators (focus ring/outline) remain visible and meet accessibility expectations on light and dark backgrounds.",
+    "Text contrast for orange-on-white and white-on-orange meets WCAG AA for normal text where applicable (or at minimum does not regress from current baseline).",
+    "No remaining hard-coded green brand color values are used for primary accents (allow exceptions for success states, validation, or semantic green).",
+    "Semantic colors remain semantic: success stays green, warning stays yellow/orange (if separate), error stays red; only brand/primary theme changes.",
+    "Theme change does not break layout (no unexpected spacing/size changes) and does not introduce unreadable text in badges/alerts/chips.",
+    "If dark mode exists, orange palette is adjusted for dark backgrounds (not overly saturated/low contrast).",
+    "Build passes with no lint/type errors after theme updates."
+  ],
+  "unitTests": [
+    "Theme token test: primary color token resolves to an orange hue (e.g., matches expected hex/rgb or falls within an allowed set) and is no longer the previous green value.",
+    "Component style test (Button): primary button uses primary token for background and uses correct hover/active styles (snapshot or computed style assertion).",
+    "Component style test (Link): link color uses primary token and hover state changes appropriately.",
+    "Accessibility test: focus ring/outline is present on keyboard focus for primary interactive components (Button, Link, Input) and uses the updated theme token.",
+    "Regression test: semantic success components (e.g., SuccessAlert/Toast) remain green and are not affected by the brand color change.",
+    "Dark mode test (if supported): primary button and link colors in dark mode use the dark-mode primary token and remain readable (snapshot).",
+    "Search test for hard-coded brand green: ensure no occurrences of the old brand green hex values remain in theme-related files (allowlist semantic success green)."
+  ],
+  "acceptanceCriteria": [
+    "Given I view any page in the app, when I look at primary actions (e.g., main CTA buttons), then they use an orange primary color instead of the previous greenish color.",
+    "Given I hover or press a primary button, when its state changes, then the hover/active colors are orange variants and clearly distinct from the default state.",
+    "Given I navigate using keyboard, when a button/link/input receives focus, then a visible focus indicator is shown and is consistent with the new orange theme.",
+    "Given I view success messages (e.g., ‘Saved successfully’), when they appear, then they remain green (semantic) and are not changed to orange.",
+    "Given the app supports dark mode, when I switch to dark mode, then primary accents are orange variants suitable for dark backgrounds and remain readable.",
+    "Given the codebase is built and tests are run, when CI runs, then lint/typecheck/tests pass with no regressions."
+  ],
+  "technicalDependencies": [
+    "Use existing theming system in the repo (e.g., CSS variables, Tailwind theme config, styled-components theme, MUI/Chakra theme).",
+    "If Tailwind is used: update tailwind.config.* theme.extend.colors and any CSS variables used by Tailwind.",
+    "If CSS variables are used: update :root and [data-theme='dark'] variables in the global stylesheet.",
+    "If a design token file exists (e.g., theme.ts, tokens.ts): update primary palette and derived tokens."
+  ],
+  "security": [
+    "No security-sensitive changes expected; ensure no secrets or environment variables are introduced.",
+    "Do not alter authentication/authorization flows; theme-only change should not touch protected logic."
+  ],
+  "performance": [
+    "Avoid adding large new CSS frameworks or heavy dependencies; implement via existing theme/tokens.",
+    "Minimize bundle impact by changing constants/config rather than adding new runtime theming logic.",
+    "Ensure no excessive re-rendering is introduced (e.g., avoid recalculating theme on every render)."
+  ],
+  "businessContext": "This is a brand refresh: the product’s primary visual identity is shifting from a greenish palette to an orange palette. The change should be consistent across the UI, preserve semantic color meanings (success/error/warning), and maintain accessibility and usability. Likely impacts marketing/brand alignment and user perception; consistency is more important than pixel-perfect per-component tweaks.",
+  "otherNotes": "Prefer updating a single source of truth for colors (design tokens/theme config) and letting components inherit. After implementation, do a quick visual sweep of key flows (home, product list, product detail, cart/checkout, auth forms) and update any documentation/storybook theme examples if present. Consider adding/adjusting visual regression snapshots if the repo uses them.",
+  "llmAssumptions": [
+    {
+      "assumption": "The application has a centralized theming mechanism (theme file, CSS variables, Tailwind config, or UI library theme) that controls primary/brand colors."
+    },
+    {
+      "assumption": "The existing greenish color is used as the primary/brand color and should be replaced by an orange primary color, while semantic success green should remain unchanged."
+    },
+    {
+      "assumption": "The repo has a frontend UI where theme changes are relevant (web app)."
+    },
+    {
+      "assumption": "Automated tests exist or can be added using the repo’s existing test framework; if none exist, add minimal tests around theme tokens and key components."
+    }
+  ],
+  "llmOpenQuestions": [
+    {
+      "question": "What exact orange should be used for the new primary brand color (provide hex codes for primary, hover, active, and optionally a lighter/darker scale), or should we derive a palette from a single primary hex?"
+    },
+    {
+      "question": "Should this change apply to all tenants/brands/environments, or should it be behind a feature flag / theme switch for staged rollout?"
+    },
+    {
+      "question": "Is dark mode supported and in scope for this change, or should we update light mode only?"
+    },
+    {
+      "question": "Are there any brand guidelines for secondary/accent colors (e.g., keep secondary as-is, or adjust complementary colors to match the new orange theme)?"
+    }
+  ],
+  "llmFileReferences": [
+    {
+      "path": "src/styles/global.css"
+    },
+    {
+      "path": "src/styles/theme.css"
+    },
+    {
+      "path": "src/theme/theme.ts"
+    },
+    {
+      "path": "src/theme/tokens.ts"
+    },
+    {
+      "path": "tailwind.config.js"
+    },
+    {
+      "path": "tailwind.config.ts"
+    },
+    {
+      "path": "src/components/Button.tsx"
+    },
+    {
+      "path": "src/components/Link.tsx"
+    }
+  ],
+  "inScope": [
+    "Update global primary/brand color tokens from greenish to orange.",
+    "Update derived UI states (hover/active/disabled/focus) for primary accents to match the orange palette.",
+    "Ensure semantic colors (success/error/warning) remain correct and not unintentionally changed.",
+    "Update dark mode tokens as needed if dark mode exists and is in scope.",
+    "Add/update unit tests and snapshots related to theme tokens and key components where feasible."
+  ],
+  "outOfScope": [
+    "Redesigning layouts, typography, spacing, or component structure beyond what is necessary for the color change.",
+    "Changing backend logic, APIs, or database behavior.",
+    "Introducing a new design system or UI framework.",
+    "Rebranding assets like logos/illustrations unless they are directly tied to theme tokens (not requested)."
+  ],
+  "suggestedFileChanges": [
+    {
+      "path": "src/theme/tokens.ts",
+      "rationale": "Likely location for design tokens; update primary palette and derived tokens (hover/active/focus)."
+    },
+    {
+      "path": "src/theme/theme.ts",
+      "rationale": "If using a theme provider (MUI/Chakra/styled-components), update primary color configuration and component overrides."
+    },
+    {
+      "path": "src/styles/global.css",
+      "rationale": "If CSS variables are used, update :root brand variables and dark-mode overrides."
+    },
+    {
+      "path": "tailwind.config.js",
+      "rationale": "If Tailwind is used, update theme colors mapping for primary/brand and ensure utilities reflect orange."
+    },
+    {
+      "path": "src/components/Button.tsx",
+      "rationale": "Verify primary button uses theme tokens; remove any hard-coded green values and ensure states map to tokens."
+    },
+    {
+      "path": "src/components/Link.tsx",
+      "rationale": "Verify link styling uses theme tokens and updates to orange consistently."
+    },
+    {
+      "path": "src/**/*.test.*",
+      "rationale": "Add/update tests for theme token values and key component styling (framework-dependent)."
+    }
+  ],
+  "promptForAider": "## Task: Change product theme from greenish to orange\n\nUpdate the app’s **primary/brand theme color** from the current greenish palette to an **orange** palette using the repo’s existing theming system (CSS variables / Tailwind config / theme provider). Do this at the **token/theme level** (single source of truth), not via scattered per-component overrides.\n\n### Requirements\n- Replace the current brand/primary greenish color with orange across primary UI accents (buttons, links, highlights, active nav, etc.).\n- Ensure interactive states are updated: default/hover/active/disabled + focus ring/outline.\n- Preserve semantic colors: success stays green, error stays red, etc. Only brand/primary changes.\n- If dark mode exists, update dark-mode primary tokens to an appropriate orange variant.\n- Remove/avoid hard-coded old brand green values for primary accents (allow semantic success green).\n\n### Validations\n- Primary token is orange and used consistently by Button/Link and other primary accents.\n- Hover/active states are distinct and orange variants.\n- Focus indicator remains visible and accessible.\n- No regressions in contrast/readability.\n\n### Tests\n- Add/update unit tests/snapshots to assert primary token value changed and Button/Link use it (including hover/focus where feasible).\n- Add a regression test ensuring semantic success components remain green.\n\n### Implementation notes\n- Prefer editing existing theme/tokens files (e.g., theme.ts/tokens.ts, global CSS variables, tailwind config) and let components inherit.\n- Run lint/typecheck/tests and ensure build passes.\n"
 }
