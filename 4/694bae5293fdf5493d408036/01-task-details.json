@@ -11,30 +11,39 @@
   "taskStatus": "TODO",
   "taskCategory": "",
   "priority": "",
-  "llmTaskExplanation": "Update the student registration flow so that the Street Address field is optional (non-mandatory) when creating a student. This typically requires changes in three layers: (1) UI/form validation on the registration page so the field is not marked required and does not block submission when empty; (2) API/request validation so the backend accepts missing/empty street address without returning validation errors; and (3) persistence/model layer so the street address column/property allows null/empty values (and any DB constraints are updated via migration if needed). Ensure existing behavior remains unchanged for other required fields, and that providing a street address still saves correctly.",
+  "llmTaskExplanation": "Update the student registration and student update/edit flows so that the Street Address field is optional (non-mandatory) everywhere. This requires changes in: (1) UI/form validation so Street Address is not marked required and does not block submission when empty/missing; (2) API/request validation so backend accepts missing/empty street address without validation errors; and (3) persistence/model layer so the street address column/property allows null/empty values (and any DB constraints are updated via migration if needed). Preserve existing behavior for other required fields, and keep saving/returning Street Address when provided. Per requirement, whitespace-only values should be preserved as-is (no trimming/normalization changes introduced).",
   "validations": [
     "Registration form: Street Address is optional; form submission must succeed when Street Address is empty, null, or omitted.",
-    "Registration form: If Street Address is provided, it must still pass any existing formatting/length validations (e.g., max length) without being loosened unintentionally.",
-    "Backend/API: Create-student endpoint must accept requests where street address is missing or an empty string; it must not return a 400/422 solely due to missing street address.",
-    "Backend/API: If street address is provided, it must be persisted and returned consistently in any create response or subsequent fetch (if applicable).",
+    "Edit/Update student form: Street Address is optional; saving must succeed when Street Address is empty, null, or omitted.",
+    "UI: Street Address must not show a required indicator (e.g., asterisk) and must not set aria-required=true (if used).",
+    "If Street Address is provided, it must still pass any existing formatting/length validations (e.g., max length) without being loosened unintentionally.",
+    "Backend/API: Create-student endpoint must accept requests where streetAddress is missing or an empty string; it must not return a 400/422 solely due to missing street address.",
+    "Backend/API: Update-student endpoint must accept requests where streetAddress is missing or an empty string; it must not return a 400/422 solely due to missing street address.",
+    "Backend/API: If street address is provided (including whitespace-only), it must be persisted and returned consistently in any create/update response or subsequent fetch (if applicable).",
     "Database/model: Street address storage must allow NULL (or empty string per existing conventions) and must not violate NOT NULL constraints during insert/update.",
-    "Edge case: Submitting whitespace-only street address should be treated as empty (trim) if the system already trims inputs; otherwise it should not cause validation failure.",
-    "Regression: Other required registration fields remain required and continue to block submission when missing/invalid."
+    "Whitespace-only street address must be preserved as-is (do not trim/normalize to empty/null as part of this change).",
+    "Regression: Other required registration/update fields remain required and continue to block submission when missing/invalid."
   ],
   "unitTests": [
-    "Frontend form validation test: submitting registration with Street Address empty does not show a 'required' error and triggers submit handler/API call.",
-    "Frontend form validation test: Street Address field is not rendered with required indicator/aria-required (if the UI uses such markers).",
+    "Frontend registration form validation test: submitting registration with Street Address empty does not show a 'required' error and triggers submit handler/API call.",
+    "Frontend registration UI test: Street Address field is not rendered with required indicator/aria-required (if the UI uses such markers).",
+    "Frontend edit/update form validation test: saving student with Street Address empty does not show a 'required' error and triggers save handler/API call.",
     "Backend validation test: create-student request without streetAddress field returns success (201/200) and creates student.",
-    "Backend validation test: create-student request with streetAddress: \"\" returns success and creates student (or normalizes to null per conventions).",
-    "Backend persistence test: create-student request with a non-empty streetAddress persists the value and can be retrieved/returned correctly.",
-    "Model/DB constraint test (if applicable in repo): migration/schema allows null for street address; inserting a student with null street address does not throw.",
-    "Regression test: create-student request missing another required field still fails with expected validation error."
+    "Backend validation test: create-student request with streetAddress: \"\" returns success and creates student (or stores empty string per conventions).",
+    "Backend validation test: update-student request omitting streetAddress returns success and does not fail validation due to streetAddress.",
+    "Backend validation test: update-student request with streetAddress: \"\" returns success and updates/clears value per conventions.",
+    "Backend persistence test: create/update with a non-empty streetAddress persists the value and can be retrieved/returned correctly.",
+    "Backend persistence test: create/update with whitespace-only streetAddress (e.g., \"   \") preserves the exact value (no trimming) and can be retrieved/returned correctly.",
+    "Model/DB constraint test (if applicable in repo): migration/schema allows null for street address; inserting/updating a student with null street address does not throw.",
+    "Regression test: create-student request missing another required field still fails with expected validation error.",
+    "Regression test: update-student request missing another required field (if applicable) still fails with expected validation error."
   ],
   "acceptanceCriteria": [
     "Given I am on the registration page, when I leave Street Address blank and submit, then the student is created successfully.",
-    "Given I submit registration with Street Address blank, then no validation error is shown for Street Address and the submit is not blocked.",
-    "Given I submit registration with a Street Address value, then the value is saved and visible wherever student address is displayed/returned (if applicable).",
-    "Given I submit registration missing other required fields, when I submit, then I still see validation errors and the student is not created."
+    "Given I am editing a student, when I clear Street Address and save, then the student is updated successfully.",
+    "Given I leave Street Address blank on registration or edit, then no validation error is shown for Street Address and the submit/save is not blocked.",
+    "Given I submit registration or update with a Street Address value (including whitespace-only), then the value is saved and visible wherever student address is displayed/returned (if applicable).",
+    "Given I submit registration or update missing other required fields, when I submit/save, then I still see validation errors and the student is not created/updated."
   ],
   "technicalDependencies": [
     "Use existing form validation library/pattern already in the repo (e.g., React Hook Form + Yup/Zod, Formik, or custom validators).",
@@ -43,21 +52,27 @@
   ],
   "security": [
     "Treat street address as PII: avoid adding new logs that print full address values.",
-    "Ensure create-student endpoint authorization/authentication remains unchanged; do not relax access controls while changing validation.",
+    "Ensure create/update student endpoint authorization/authentication remains unchanged; do not relax access controls while changing validation.",
     "Continue to sanitize/validate inputs to prevent injection (SQL/NoSQL) and XSS in any address display fields."
   ],
   "performance": [
     "No measurable performance impact expected; ensure no additional network calls are introduced.",
     "If adding a DB migration, ensure it is safe for production (non-blocking where possible) and does not require full table rewrite unless unavoidable."
   ],
-  "businessContext": "The registration flow should not force users to provide a street address to create a student record. This supports cases where address is unknown, not applicable, or collected later. Other required registration information should remain required to preserve data quality.",
-  "otherNotes": "If the UI currently shows a required asterisk or helper text for Street Address, update it to reflect optional status. If the backend normalizes empty strings to null, keep behavior consistent across create and update flows. Consider also updating any edit-student form validation to match (optional) to avoid inconsistency. Add/adjust DB migration only if the column is currently NOT NULL. Update any API docs or inline comments if they explicitly state street address is required.",
+  "businessContext": "The registration and student maintenance flows should not force users to provide a street address to create or update a student record. This supports cases where address is unknown, not applicable, or collected later. Other required student information should remain required to preserve data quality. There are no downstream business process concerns requiring street address at a later step.",
+  "otherNotes": "Apply optional Street Address consistently across all flows (registration + edit/update) to avoid mismatched validation. Do not introduce new trimming/normalization behavior: whitespace-only streetAddress values should be preserved as entered. If the UI currently shows a required asterisk or helper text for Street Address, update it to reflect optional status. Add/adjust DB migration only if the column is currently NOT NULL. Update any API docs or inline comments if they explicitly state street address is required.",
   "llmAssumptions": [
+    {
+      "assumption": "Street Address must be optional in all student flows (registration and edit/update), not just initial registration."
+    },
+    {
+      "assumption": "Whitespace-only Street Address values should be preserved as entered; no trimming/normalization changes are desired for this task."
+    },
     {
       "assumption": "There is a registration page used to create a student record, and it includes a Street Address input currently marked required."
     },
     {
-      "assumption": "There is backend-side validation that currently rejects missing/empty street address during student creation."
+      "assumption": "There is backend-side validation that currently rejects missing/empty street address during student creation and possibly update."
     },
     {
       "assumption": "Street address is stored in a database field that may currently be NOT NULL; a migration may be required depending on current schema."
@@ -66,31 +81,21 @@
       "assumption": "The system has automated tests and a standard way to test frontend forms and backend endpoints."
     }
   ],
-  "llmOpenQuestions": [
-    {
-      "question": "Should Street Address be optional only on initial registration, or also optional on any subsequent edit/update student flows?",
-      "answer":"optional in all flows"
-    },
-    {
-      "question": "When a user enters only whitespace for Street Address, should the system trim and store it as empty/null, or preserve as-is?",
-      "answer":"preserve as is"
-    },
-    {
-      "question": "Are there any downstream business processes (e.g., billing, shipping, reporting) that require street address at a later step, and should we add any UI messaging like 'optional (can be added later)'?",
-      "answer":"No issues"
-    }
-  ],
+  "llmOpenQuestions": [],
   "llmFileReferences": [],
   "inScope": [
-    "Make Street Address optional on the registration UI (no required validation).",
+    "Make Street Address optional on the registration UI (no required validation/indicator).",
+    "Make Street Address optional on any edit/update student UI (no required validation/indicator).",
     "Allow create-student submission when Street Address is empty/missing.",
-    "Update backend validation to accept empty/missing street address.",
+    "Allow update-student submission when Street Address is empty/missing.",
+    "Update backend validation to accept empty/missing street address on create and update.",
     "Update persistence/schema constraints if they currently require street address.",
-    "Add/adjust unit tests to cover optional street address behavior and regressions."
+    "Add/adjust unit tests to cover optional street address behavior (create + update) and regressions.",
+    "Ensure whitespace-only streetAddress values are preserved (no trimming introduced by this change)."
   ],
   "outOfScope": [
     "Changing requirements for other address fields (city/state/zip) unless they are coupled and currently blocked by street address changes.",
-    "Redesigning the registration page UI beyond required/optional indicators and related helper text.",
+    "Redesigning the registration/edit pages beyond required/optional indicators and related helper text.",
     "Adding new address verification, geocoding, or third-party address services.",
     "Bulk backfilling or modifying existing student address data."
   ],
@@ -104,20 +109,28 @@
       "rationale": "If the form is componentized, update field-level validation rules and required markers for Street Address."
     },
     {
+      "path": "src/pages/**/EditStudent.*",
+      "rationale": "Update any student edit/update page to remove required validation/indicator for Street Address and ensure save works when empty."
+    },
+    {
+      "path": "src/components/forms/StudentEditForm.*",
+      "rationale": "If the edit form is componentized, update field-level validation rules and required markers for Street Address."
+    },
+    {
       "path": "src/validation/*student*.*",
-      "rationale": "Adjust shared validation schema (Yup/Zod/custom) to make streetAddress optional."
+      "rationale": "Adjust shared validation schema to make streetAddress optional for both create and update flows; do not add trimming for whitespace-only values."
     },
     {
       "path": "server/routes/*student*.*",
-      "rationale": "Ensure create-student route/controller accepts missing/empty streetAddress and does not reject the request."
+      "rationale": "Ensure create-student and update-student routes/controllers accept missing/empty streetAddress and do not reject the request."
     },
     {
       "path": "server/validators/*student*.*",
-      "rationale": "Update backend DTO/schema validation to mark streetAddress optional and handle empty string normalization if applicable."
+      "rationale": "Update backend DTO/schema validation to mark streetAddress optional for create and update; ensure whitespace-only is not normalized."
     },
     {
       "path": "server/models/*Student*.*",
-      "rationale": "Ensure model allows null/empty streetAddress and does not enforce presence validation."
+      "rationale": "Ensure model allows null/empty streetAddress and does not enforce presence validation on create/update."
     },
     {
       "path": "migrations/*",
@@ -125,12 +138,20 @@
     },
     {
       "path": "tests/**/*registration*.*",
-      "rationale": "Add/adjust frontend tests ensuring Street Address is optional and submission succeeds."
+      "rationale": "Add/adjust frontend tests ensuring Street Address is optional on registration and submission succeeds."
+    },
+    {
+      "path": "tests/**/*student*edit*.*",
+      "rationale": "Add/adjust frontend tests ensuring Street Address is optional on edit/update and save succeeds."
     },
     {
       "path": "tests/**/*student*create*.*",
       "rationale": "Add/adjust backend tests ensuring create-student works without streetAddress and still fails for other missing required fields."
+    },
+    {
+      "path": "tests/**/*student*update*.*",
+      "rationale": "Add/adjust backend tests ensuring update-student works without streetAddress and still fails for other missing required fields."
     }
   ],
-  "promptForAider": "## Task: Make Street Address optional on student registration\n\nUpdate the student registration flow so **Street Address is not mandatory** when creating a student.\n\n### Requirements\n- UI: Remove required validation/required indicator for Street Address on the registration form.\n- Backend: Create-student must accept `streetAddress` when **missing**, **null**, or **empty string** (normalize/trim per existing conventions).\n- Persistence: Ensure DB/model allows null/empty street address; add a migration only if a NOT NULL constraint exists.\n- Regression: Other required fields must remain required.\n\n### Validations to implement\n- Submission succeeds with Street Address empty/missing.\n- If Street Address is provided, existing length/format constraints still apply.\n- Whitespace-only address should be treated as empty if the codebase trims inputs.\n\n### Tests to add/update\n- Frontend: submitting with empty Street Address does not show required error and calls submit.\n- Backend: create-student without `streetAddress` succeeds; with `streetAddress: \"\"` succeeds.\n- Backend regression: missing another required field still fails.\n\n### Security/PII\n- Do not add logs that print full street address.\n- Do not change authz/authn behavior.\n\n### Checklist\n- Add/adjust unit tests.\n- If a migration is needed, include it and ensure it’s safe.\n"
+  "promptForAider": "## Task: Make Street Address optional in all student flows (registration + edit/update)\n\n### Goal\nMake `streetAddress` **non-mandatory everywhere** (create + update). Users must be able to submit/save with `streetAddress` missing, null, or empty string.\n\n### Key requirements\n- UI (registration + edit): remove required validation and required indicator/aria-required for Street Address.\n- Backend (create + update): validation must not reject missing/empty `streetAddress`.\n- Persistence: ensure DB/model allows NULL/empty; add migration only if NOT NULL exists.\n- IMPORTANT: **Do not introduce trimming/normalization**. Whitespace-only values (e.g., \"   \") must be preserved as entered.\n- Regression: other required fields remain required.\n\n### Suggested areas to change\n- `src/pages/Registration.*`\n- `src/components/forms/StudentRegistrationForm.*`\n- `src/pages/**/EditStudent.*`\n- `src/components/forms/StudentEditForm.*`\n- `src/validation/*student*.*`\n- `server/routes/*student*.*`\n- `server/validators/*student*.*`\n- `server/models/*Student*.*`\n- `migrations/*` (only if needed)\n\n### Validations to ensure\n- Create and update succeed when `streetAddress` is omitted or \"\".\n- If provided, existing length/format constraints still apply.\n- Whitespace-only is accepted and stored exactly (no trim).\n\n### Tests to add/update\n- Frontend: registration submit with empty Street Address succeeds; no required error/indicator.\n- Frontend: edit/update save with empty Street Address succeeds; no required error/indicator.\n- Backend: create without `streetAddress` succeeds; create with `streetAddress: \"\"` succeeds.\n- Backend: update omitting `streetAddress` succeeds; update with `streetAddress: \"\"` succeeds.\n- Backend: whitespace-only `streetAddress` is preserved (no trimming).\n- Regression: missing other required fields still fails.\n\n### Security/PII\n- Do not add logs that print full street address.\n- Do not change auth/authz behavior.\n"
 }
