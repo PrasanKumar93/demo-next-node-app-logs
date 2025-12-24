@@ -66,8 +66,7 @@
     {
       "question": "Should the red theme apply globally to the entire app (all pages), or only to specific areas (e.g., marketing site vs. authenticated app)?",
       "answer":"just change the colors in core colors file, any red shade is fine"
-    },
-    
+    }
   ],
   "llmFileReferences": [
     {
