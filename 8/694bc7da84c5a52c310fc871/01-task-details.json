@@ -9,5 +9,108 @@
   "assignee": "PrasanKumar93",
   "taskStatus": "TODO",
   "taskCategory": "",
-  "priority": ""
+  "priority": "",
+  "llmTaskExplanation": "Update the application’s UI color theme so that the primary brand color is red. This typically means changing the design system/theme configuration (e.g., primary color token) and ensuring all components that rely on theme tokens (buttons, links, active states, focus rings, nav highlights, etc.) reflect the new red palette consistently. Implementation should prefer updating a single source of truth (theme/tokens) rather than hard-coding colors in individual components. After updating the theme, verify key screens/components render with the new primary red color and that contrast/accessibility remains acceptable.",
+  "validations": [
+    "Primary theme color token is set to a red value (not left undefined/null).",
+    "Theme change is applied globally (no need to manually update each component) and does not require per-page overrides to take effect.",
+    "No remaining references to the old primary brand color in theme tokens (excluding intentionally preserved semantic colors like error/danger if they are already red).",
+    "Interactive states (hover/active/disabled) for primary actions remain visually distinct after switching to red.",
+    "Text/icon contrast on red backgrounds meets WCAG AA for normal text where applicable (or at minimum does not regress from current behavior).",
+    "Dark mode (if present) has an appropriate red variant and does not reduce readability.",
+    "Build passes with no lint/type errors after theme token changes."
+  ],
+  "unitTests": [
+    "Theme config exports a defined primary color token and it matches the expected red palette key/value.",
+    "Rendering a primary button uses the theme primary color (snapshot or style assertion) rather than a hard-coded color.",
+    "Rendering a link/active nav item uses the theme primary color token (style assertion).",
+    "Hover/active state styles for primary button differ from default state (style assertion).",
+    "If dark mode exists: toggling dark mode applies the dark red variant token (style assertion).",
+    "Regression: components that previously used semantic error color still use error token and are not unintentionally changed by the primary theme update."
+  ],
+  "acceptanceCriteria": [
+    "Given the app is loaded, when viewing primary actions (e.g., primary buttons), then their default styling uses the new red primary color.",
+    "Given the app is loaded, when viewing navigation/links that use the primary accent, then the accent color is red.",
+    "Given a user hovers or activates a primary action, when the state changes, then the hover/active styling remains clearly distinguishable from the default state.",
+    "Given the app supports dark mode, when dark mode is enabled, then the primary color remains red with an appropriate shade for dark backgrounds.",
+    "Given the theme is updated, when running tests/build, then CI checks pass (tests + lint/typecheck) with no new failures."
+  ],
+  "technicalDependencies": [
+    "Use the existing theme/tokens system already present in the repo (e.g., ThemeProvider, CSS variables, Tailwind config, MUI/Chakra theme, etc.).",
+    "Existing test framework in the repo (e.g., Jest/Vitest) and UI test utilities (e.g., React Testing Library) for style assertions/snapshots."
+  ],
+  "security": [
+    "No security-sensitive changes expected; ensure no secrets/config are introduced while changing theme values.",
+    "Do not log user data or introduce telemetry as part of a theme change."
+  ],
+  "performance": [
+    "Prefer token/theme-level changes to avoid increasing bundle size via duplicated inline styles.",
+    "Avoid adding large new color libraries/assets; keep changes minimal and within existing styling system."
+  ],
+  "businessContext": "This is a branding/visual identity update: the product’s primary brand color should be red across the UI. Consistency is important so users recognize primary actions and accents. The change should be centralized in the theme to reduce maintenance and ensure uniform appearance.",
+  "otherNotes": "If the app has multiple themes/tenants/white-labeling, ensure the default theme is updated (or add a red variant behind an existing theme switch). If design tokens include multiple shades (50-900), update the full palette so hover/active states can derive from adjacent shades. Ensure focus outlines remain visible (especially if they use the primary color).",
+  "llmAssumptions": [
+    {
+      "assumption": "The project has a centralized theming mechanism (theme object, design tokens, CSS variables, or Tailwind config) that controls primary/brand colors."
+    },
+    {
+      "assumption": "The intent is to change the primary/brand color (not the error/danger color), even though red is commonly used for errors."
+    },
+    {
+      "assumption": "There may be light and dark mode variants; if present, both should be updated."
+    },
+    {
+      "assumption": "The repo includes a frontend UI where theme changes are visible and testable."
+    }
+  ],
+  "llmOpenQuestions": [
+    {
+      "question": "Should the new red be applied only to the primary/brand color, or should it also replace other accents (e.g., secondary/accent) to make the overall theme predominantly red?"
+    },
+    {
+      "question": "Do you have a specific red to match (hex value or brand palette), or is a standard red acceptable?"
+    },
+    {
+      "question": "Should this change apply to all tenants/brands/environments, or only a specific theme/brand variant?"
+    },
+    {
+      "question": "Is dark mode in scope for this change (if the app supports it), or should only the default/light theme be updated?"
+    }
+  ],
+  "llmFileReferences": [],
+  "inScope": [
+    "Update the global theme/tokens so the primary/brand color is red.",
+    "Ensure primary UI elements (buttons, links, active states, focus rings where applicable) reflect the new primary color via tokens.",
+    "Add/update unit tests to confirm components consume theme tokens for primary color.",
+    "Verify light/dark theme variants if they exist."
+  ],
+  "outOfScope": [
+    "Redesigning layouts, typography, spacing, or component structure.",
+    "Changing semantic colors (error/success/warning) unless they are incorrectly tied to the primary token.",
+    "Adding a new theming framework or migrating styling systems.",
+    "Large-scale visual refresh beyond the primary color update."
+  ],
+  "suggestedFileChanges": [
+    {
+      "path": "src/theme/*",
+      "rationale": "Likely location for theme configuration or design tokens; update primary/brand palette to red."
+    },
+    {
+      "path": "src/styles/*",
+      "rationale": "If CSS variables or global styles define color tokens, update the primary token values here."
+    },
+    {
+      "path": "tailwind.config.*",
+      "rationale": "If Tailwind is used, primary color may be defined/extended here and should be updated to red."
+    },
+    {
+      "path": "src/components/**",
+      "rationale": "Only if some components hard-code the old primary color; refactor to use theme tokens instead."
+    },
+    {
+      "path": "src/**/__tests__/*",
+      "rationale": "Add/update tests asserting primary components use the theme primary color token."
+    }
+  ],
+  "promptForAider": "## Task: Change color theme to red\n\nUpdate the app’s global theme so the **primary/brand color** is red, applied consistently across UI components.\n\n### Implementation\n- Find the centralized theme/tokens source (ThemeProvider/theme object, CSS variables, Tailwind config, etc.).\n- Update the **primary/brand** palette/token(s) to a red palette (include shades for hover/active if the system supports it).\n- Ensure components consume tokens (no hard-coded old primary color). Only touch individual components if they are not token-driven.\n- If dark mode exists, update the dark theme’s primary red variant too.\n\n### Validations / Checks\n- Primary token is defined and used globally.\n- Hover/active/disabled states remain distinct.\n- Contrast/readability does not regress.\n- Build + lint + tests pass.\n\n### Unit tests (use existing test stack)\n- Assert theme exports primary token set to red.\n- Render a primary button/link and assert it uses the theme primary color (style assertion or snapshot).\n- Assert hover/active styles differ from default.\n- If dark mode exists: toggling dark mode applies the dark red variant.\n- Regression: semantic error color remains tied to error token, not unintentionally changed.\n\n### Acceptance criteria\n- Primary actions and accents render in red.\n- Interactive states remain clear.\n- Dark mode (if present) uses appropriate red.\n- CI checks pass.\n\nPlease implement with minimal, centralized changes and add/update tests accordingly."
 }
