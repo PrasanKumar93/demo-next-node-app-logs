@@ -10,5 +10,124 @@
   "description": "### Task explanation\n\nIn Student registration page, firstName should allow max 6 characters only\n\n### Task validations\n\n- english characters only\n-  max 6 characters\n\n\n### Unit Test Cases\n\n_No response_\n\n### Task acceptance criteria\n\n- both front end form validation and back end schema must have this validation of max 6 characters\n\n### Task context files\n\n_No response_\n\n### Tech / Package Dependencies\n\n_No response_\n\n### Security & Performance\n\n_No response_\n\n### Other business context\n\n_No response_\n\n### Other notes\n\n_No response_\n\n### Checklist\n\n- [ ] Task documentation required\n- [ ] Task deployment required\n\n### Final Confirmation\n\n- [ ] I confirm the spec is correct and ready for development. (Good context now means less time spent in code review later :)",
   "taskStatus": "TODO",
   "taskCategory": "",
-  "priority": ""
+  "priority": "",
+  "llmTaskExplanation": "Update the Student Registration page so the `firstName` field only accepts English alphabet characters and is limited to a maximum length of 6 characters. Implement this validation consistently in two places: (1) the frontend form validation (prevent/flag invalid input and block submission) and (2) the backend validation layer (schema/model/DTO/request validator) so that API requests with invalid `firstName` are rejected even if the frontend is bypassed. Ensure the UI shows a clear validation message when the user enters non-English characters or exceeds 6 characters, and ensure the backend returns an appropriate validation error response for invalid payloads.",
+  "validations": [
+    "firstName is required (if the registration form currently requires it); empty/whitespace-only values are invalid",
+    "firstName must contain English letters only: A–Z and a–z (no digits, spaces, hyphens, apostrophes, accents/diacritics, emojis, or other unicode letters)",
+    "firstName length must be <= 6 characters (counting characters as entered; reject length 7+)",
+    "Trim leading/trailing whitespace before validating (so ' John ' validates as 'John' if trimming is standard in the app)",
+    "Frontend must block form submission when firstName is invalid and display an inline error message",
+    "Backend must reject requests with invalid firstName and return a validation error (4xx) with a field-specific message"
+  ],
+  "unitTests": [
+    "Frontend: allows submission when firstName is valid and length <= 6 (e.g., 'John', 'ABCdef')",
+    "Frontend: shows validation error and blocks submission when firstName length is 7+ (e.g., 'Johnnyy')",
+    "Frontend: shows validation error and blocks submission when firstName contains non-English characters (e.g., 'Jöhn', '张三', 'John1', 'John Doe', 'John-Doe', \"O'Nei\")",
+    "Frontend: boundary tests for length: 6 chars passes, 7 chars fails",
+    "Frontend: if trimming is applied, ' John ' is treated as 'John' and passes; if not applied, ensure behavior matches existing app conventions",
+    "Backend: accepts payload with valid firstName length <= 6 and English letters only",
+    "Backend: rejects payload where firstName length is 7+ with 4xx validation error and includes field name in error details",
+    "Backend: rejects payload where firstName contains non-English characters with 4xx validation error",
+    "Backend: rejects payload where firstName is missing/empty (only if firstName is required by current business rules)",
+    "Integration-style (if present in repo): submitting the registration form with invalid firstName does not call success path / does not create a student record"
+  ],
+  "acceptanceCriteria": [
+    "Given a user is on the Student Registration page, when they enter a firstName with more than 6 characters, then an inline validation message is shown and the form cannot be submitted",
+    "Given a user is on the Student Registration page, when they enter a firstName containing any non-English character (non A–Z/a–z), then an inline validation message is shown and the form cannot be submitted",
+    "Given a user submits the registration request directly to the backend with firstName longer than 6 characters, then the backend responds with a 4xx validation error and does not create/update the student",
+    "Given a user submits the registration request directly to the backend with firstName containing non-English characters, then the backend responds with a 4xx validation error and does not create/update the student",
+    "Given a user enters a valid firstName of 1–6 English letters, when they submit, then the submission succeeds (assuming all other required fields are valid)"
+  ],
+  "technicalDependencies": [
+    "Use existing frontend form validation approach already in the repo (e.g., React Hook Form + resolver, Formik + Yup, Zod, or custom validators) — do not introduce a new validation library unless necessary",
+    "Use existing backend validation mechanism already in the repo (e.g., DTO validation, schema validation, model constraints) to enforce max length and character set"
+  ],
+  "security": [
+    "Enforce server-side validation regardless of frontend checks to prevent bypass",
+    "Return field-level validation errors without echoing full request payloads (avoid logging PII unnecessarily)",
+    "Sanitize/normalize input consistently (e.g., trimming) to reduce ambiguity and prevent unexpected unicode edge cases"
+  ],
+  "performance": [
+    "Validation should be O(n) on input length and run client-side without noticeable UI lag",
+    "Avoid adding heavy new validation dependencies that increase bundle size unless already used in the project"
+  ],
+  "businessContext": "Student registration requires a constrained first name format: English letters only and a maximum of 6 characters. This likely supports downstream system constraints (e.g., legacy field length limits) and ensures consistent data quality across the application.",
+  "otherNotes": "Ensure error copy is user-friendly (e.g., 'First name must be up to 6 English letters (A–Z)') and consistent between frontend and backend. If the backend already has a shared validation schema used by the frontend, prefer reusing it to avoid drift. Update any API docs or form help text if present. Add/adjust tests in the existing test framework used by the repo.",
+  "llmAssumptions": [
+    {
+      "assumption": "There is a Student Registration page with a `firstName` input and a submit action that calls a backend endpoint."
+    },
+    {
+      "assumption": "The application has an existing frontend validation pattern (library or custom) and an existing backend validation layer; the change should integrate with those rather than introducing new frameworks."
+    },
+    {
+      "assumption": "“English characters only” means strictly ASCII letters A–Z/a–z (no spaces, punctuation, diacritics, or other unicode letters)."
+    },
+    {
+      "assumption": "firstName is a required field in the registration flow; if it is optional in the current product, the required validation should be omitted and only apply the max length + character set when provided."
+    },
+    {
+      "assumption": "Trimming leading/trailing whitespace is acceptable and consistent with existing input handling; if the app currently preserves whitespace, validation should follow existing conventions."
+    }
+  ],
+  "llmOpenQuestions": [
+    {
+      "question": "Should names with common punctuation/spaces (e.g., \"O'Neil\", \"Mary Jane\", \"Anne-Marie\") be considered invalid under “english characters only”, or should we allow these characters while still restricting to English letters?"
+    },
+    {
+      "question": "What exact user-facing error message copy is desired for (a) non-English characters and (b) exceeding 6 characters, or is standard copy acceptable?"
+    },
+    {
+      "question": "If a user pastes a longer value, should the UI hard-truncate to 6 characters, or should it allow entry but show an error and block submission?"
+    }
+  ],
+  "llmFileReferences": [],
+  "inScope": [
+    "Add/update frontend validation for Student Registration `firstName` to enforce English letters only and max length 6",
+    "Add/update backend validation/schema constraints for `firstName` to enforce English letters only and max length 6",
+    "Add/adjust unit tests covering valid/invalid cases for both frontend and backend validation",
+    "Ensure consistent error handling/messages for invalid firstName"
+  ],
+  "outOfScope": [
+    "Changing validation rules for other fields (lastName, middleName, etc.)",
+    "Database migrations unless required by existing schema constraints (prefer validation-only changes unless DB currently enforces a different limit)",
+    "Internationalization support for non-English names",
+    "Redesigning the registration UI beyond adding validation feedback"
+  ],
+  "suggestedFileChanges": [
+    {
+      "path": "frontend/pages/StudentRegistration.(tsx|jsx)",
+      "rationale": "Update the firstName input constraints and form submission validation on the Student Registration page."
+    },
+    {
+      "path": "frontend/components/forms/StudentRegistrationForm.(tsx|jsx)",
+      "rationale": "If the registration form is a separate component, add maxLength/validation rules and error rendering for firstName."
+    },
+    {
+      "path": "frontend/validation/studentRegistration.(ts|js)",
+      "rationale": "Centralize the firstName validation rule (regex + max length) if the repo uses shared validation schemas."
+    },
+    {
+      "path": "backend/validators/studentRegistration.(ts|js)",
+      "rationale": "Enforce server-side validation for firstName (max length 6 + English letters only)."
+    },
+    {
+      "path": "backend/controllers/students.(ts|js)",
+      "rationale": "Ensure controller uses the validator and returns proper 4xx validation errors when firstName is invalid."
+    },
+    {
+      "path": "backend/models/Student.(ts|js)",
+      "rationale": "If model/schema-level constraints exist (ORM schema), add max length and pattern constraint there as well."
+    },
+    {
+      "path": "frontend/__tests__/StudentRegistration.test.(ts|tsx|js|jsx)",
+      "rationale": "Add/adjust frontend tests for firstName validation behavior."
+    },
+    {
+      "path": "backend/__tests__/studentRegistration.validation.test.(ts|js)",
+      "rationale": "Add/adjust backend tests to ensure invalid firstName is rejected and valid values pass."
+    }
+  ],
+  "promptForAider": "## Task: Student registration `firstName` max 6 chars + English letters only\n\nImplement validation for `firstName` on the Student Registration flow.\n\n### Requirements\n- Frontend: validate `firstName` as **English letters only (A–Z/a–z)** and **max length 6**.\n- Backend: enforce the same constraints in the request validation/schema/model so API calls cannot bypass the UI.\n- Show clear inline error messages on the form and block submission when invalid.\n- Backend should return a 4xx validation error with field-specific details when invalid.\n\n### Validations\n- `firstName` must match `^[A-Za-z]+$` (no spaces/digits/punctuation/diacritics).\n- `firstName.length <= 6` (6 passes, 7 fails).\n- Trim input if consistent with existing codebase conventions.\n\n### Tests to add/update\n- Frontend: valid values (<=6 letters) submit; invalid (7+ chars) blocks; invalid (non A–Z/a–z) blocks.\n- Backend: valid payload accepted; invalid length rejected; invalid characters rejected; ensure no student is created on invalid.\n\n### Notes\n- Reuse existing validation libraries/patterns in the repo; do not introduce new ones unless necessary.\n- Keep frontend + backend rules in sync.\n- Update any help text/error copy if present.\n\n### Checklist\n- Add/adjust unit tests.\n- No deployment steps required unless repo mandates.\n"
 }
