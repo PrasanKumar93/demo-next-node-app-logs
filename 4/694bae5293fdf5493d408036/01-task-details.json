@@ -1,0 +1,14 @@
+{
+  "taskId": 4,
+  "name": "[TASK]: Make street address non mandatory field in registration page",
+  "createdAt": "2025-12-24T09:10:02.000Z",
+  "updatedAt": "2025-12-24T09:10:13.000Z",
+  "allAssignees": [
+    "PrasanKumar93"
+  ],
+  "assignee": "PrasanKumar93",
+  "description": "### Task explanation\n\nMake street address non mandatory field in registration page\n\n### Task validations\n\n_No response_\n\n### Unit Test Cases\n\n_No response_\n\n### Task acceptance criteria\n\n- street address must allow empty value during submit/ creating student\n\n### Task context files\n\n_No response_\n\n### Tech / Package Dependencies\n\n_No response_\n\n### Security & Performance\n\n_No response_\n\n### Other business context\n\n_No response_\n\n### Other notes\n\n_No response_\n\n### Checklist\n\n- [ ] Task documentation required\n- [ ] Task deployment required\n\n### Final Confirmation\n\n- [ ] I confirm the spec is correct and ready for development. (Good context now means less time spent in code review later :)",
+  "taskStatus": "TODO",
+  "taskCategory": "",
+  "priority": ""
+}
