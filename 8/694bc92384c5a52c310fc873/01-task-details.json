@@ -64,17 +64,10 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should the red theme apply globally to the entire app (all pages), or only to specific areas (e.g., marketing site vs. authenticated app)?"
+      "question": "Should the red theme apply globally to the entire app (all pages), or only to specific areas (e.g., marketing site vs. authenticated app)?",
+      "answer":"just change the colors in core colors file, any red shade is fine"
     },
-    {
-      "question": "Is there a specific brand red to use (exact hex value), or should we choose a reasonable accessible red and matching shades for hover/active?"
-    },
-    {
-      "question": "Should semantic colors (success/warning/error) remain unchanged, or should any of them be adjusted as part of the rebrand?"
-    },
-    {
-      "question": "If the app supports dark mode, should the red be identical across modes or use different shades tuned for contrast in each mode?"
-    }
+    
   ],
   "llmFileReferences": [
     {
