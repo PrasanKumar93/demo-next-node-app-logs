@@ -10,10 +10,10 @@
   "taskStatus": "TODO",
   "taskCategory": "",
   "priority": "",
-  "llmTaskExplanation": "Update the application’s UI color theme so the primary brand color is red. This typically means changing the global theme tokens (e.g., primary/accent color, link color, button primary background, focus/active states) and ensuring the change propagates consistently across the app. Implement the change in the project’s existing theming system (e.g., CSS variables, Tailwind config, Material UI theme, Chakra theme, styled-components ThemeProvider, etc.) rather than hardcoding red in individual components. Ensure adequate contrast and that interactive states (hover/active/disabled) remain visually distinct. If the app supports light/dark modes, update both palettes accordingly. After updating theme tokens, verify key UI surfaces (buttons, links, nav, headers, form focus rings, alerts) reflect the new red theme without regressions.",
+  "llmTaskExplanation": "Update the application’s UI color theme so the primary brand color is red by changing the centralized/core color tokens (the core colors file) so the change propagates consistently across the entire app. Any reasonable red shade is acceptable. Avoid hardcoding red in individual components; instead, update the global theme tokens (primary/accent, link color, primary button background, focus/active states) and ensure the change is reflected consistently. Ensure adequate contrast and that interactive states (hover/active/disabled) remain visually distinct. If the app supports light/dark modes, update both palettes accordingly. Verify key UI surfaces (buttons, links, nav, headers, form focus rings, alerts) reflect the new red theme without regressions.",
   "validations": [
-    "Primary theme color token is set to a red hue and is used by primary UI elements (primary buttons, links, active nav states) without per-component hardcoding.",
-    "Hover/active/disabled states for primary actions remain visually distinct from default state (no identical colors across states).",
+    "Primary theme color token in the centralized/core colors file is set to a red hue and is used by primary UI elements (primary buttons, links, active nav states) without per-component hardcoding.",
+    "Hover/active/disabled states for primary actions remain visually distinct from the default state (no identical colors across states).",
     "Text/icon contrast on red backgrounds meets WCAG AA where applicable (at minimum, primary button label remains readable).",
     "Focus indicators remain visible on red-themed components (focus ring/outline not removed and not blending into background).",
     "If light/dark themes exist, both modes use the red primary color with appropriate shades for readability.",
@@ -21,7 +21,7 @@
     "Theme change does not break layout or cause visual regressions due to token name mismatches or missing variables."
   ],
   "unitTests": [
-    "Theme provider/config test: primary color token resolves to a red value (e.g., matches expected hex/rgb or palette entry).",
+    "Theme provider/config test: primary color token resolves to a red value (e.g., matches expected hex/rgb or palette entry) from the centralized/core colors source.",
     "Component style test: primary button uses theme primary color for background/border (snapshot or computed style assertion depending on stack).",
     "Component style test: link/anchor uses theme primary color for default/hover states (ensures token wiring).",
     "Focus state test: tabbing to a primary input/button shows a visible focus outline/ring (assert class/token applied).",
@@ -29,7 +29,7 @@
     "Regression test: semantic alert components (success/warning/error) retain their semantic colors and are not changed to red unless intended."
   ],
   "acceptanceCriteria": [
-    "Given a user views any page with primary actions, when the page loads, then primary buttons and links use the new red theme color.",
+    "Given a user views any page in the app, when the page loads, then primary buttons and links use the new red theme color sourced from the centralized/core colors file.",
     "Given a user hovers or presses a primary button/link, when the state changes, then the hover/active styling is visibly distinct and still within the red theme.",
     "Given a keyboard user tabs through interactive elements, when focus lands on primary themed controls, then a visible focus indicator is present.",
     "Given the app supports dark mode, when dark mode is enabled, then the primary theme remains red and text remains readable on primary surfaces.",
@@ -37,6 +37,7 @@
   ],
   "technicalDependencies": [
     "Use the existing theming mechanism already present in the repo (e.g., CSS variables, Tailwind theme config, or a UI library theme provider).",
+    "Prefer updating the centralized/core colors file (design tokens) so the change applies globally.",
     "If Tailwind is used: update tailwind.config.* theme.extend.colors (or CSS variables feeding Tailwind).",
     "If a component library is used (e.g., MUI/Chakra): update the central theme configuration rather than per-component overrides."
   ],
@@ -49,8 +50,8 @@
     "Prefer token changes over duplicative CSS rules to minimize bundle/CSS size growth.",
     "Ensure theme changes do not trigger excessive runtime recalculation (e.g., avoid per-render inline style generation if a theme provider already exists)."
   ],
-  "businessContext": "This is a branding/UX update: the product’s primary brand color is changing to red. The goal is consistent visual identity across the application while maintaining accessibility and usability (readable text, visible focus states, clear interaction states).",
-  "otherNotes": "If the app has design tokens documented (e.g., in a theme file), update those tokens and any related documentation/storybook examples. Consider adding/adjusting snapshots if the repo uses visual regression testing. Ensure any marketing/brand pages and auth pages also inherit the updated theme.",
+  "businessContext": "This is a branding/UX update: the product’s primary brand color is changing to red. The goal is consistent visual identity across the entire application by updating the centralized/core color tokens while maintaining accessibility and usability (readable text, visible focus states, clear interaction states).",
+  "otherNotes": "Any red shade is acceptable. Implement by changing the centralized/core colors file (design tokens) so all pages inherit the update. If the app has design tokens documented (e.g., in a theme file), update those tokens and any related documentation/storybook examples. Consider adding/adjusting snapshots if the repo uses visual regression testing. Ensure any marketing/brand pages and auth pages also inherit the updated theme.",
   "llmAssumptions": [
     {
       "assumption": "The project has a centralized theming system (theme file, CSS variables, Tailwind config, or UI library theme provider) that can be updated to propagate the new primary color."
@@ -60,14 +61,15 @@
     },
     {
       "assumption": "The app may support light/dark mode; if it does, both palettes should be updated."
-    }
-  ],
-  "llmOpenQuestions": [
+    },
     {
-      "question": "Should the red theme apply globally to the entire app (all pages), or only to specific areas (e.g., marketing site vs. authenticated app)?",
-      "answer":"just change the colors in core colors file, any red shade is fine"
+      "assumption": "There is a centralized/core colors file used as the source of truth for theme tokens, and updating it will apply the red theme globally."
+    },
+    {
+      "assumption": "Any reasonable red shade is acceptable as the primary brand color."
     }
   ],
+  "llmOpenQuestions": [],
   "llmFileReferences": [
     {
       "path": "tailwind.config.js"
@@ -95,7 +97,8 @@
     }
   ],
   "inScope": [
-    "Update the primary theme color to red via the app’s centralized theming/tokens.",
+    "Update the primary theme color to red via the app’s centralized theming/tokens (core colors file).",
+    "Apply the change globally across the entire app (all pages) by updating centralized tokens rather than per-component overrides.",
     "Update related interaction state colors (hover/active/focus) to match the red theme while preserving usability.",
     "Ensure consistent application across common components (buttons, links, nav active states, form focus rings).",
     "Add/update unit tests that verify theme token wiring and key component styling behavior."
@@ -108,16 +111,28 @@
   ],
   "suggestedFileChanges": [
     {
-      "path": "tailwind.config.js",
-      "rationale": "If Tailwind is used, update the primary/brand color tokens to red and ensure variants exist for hover/active."
+      "path": "src/theme.ts",
+      "rationale": "If a JS/TS theme object is used (MUI/Chakra/styled-components), update palette primary to a red shade and adjust shades for hover/active/focus/disabled."
+    },
+    {
+      "path": "src/theme/index.ts",
+      "rationale": "If theme tokens are re-exported/assembled here, ensure the primary/brand token points to the updated red value from the core colors source."
+    },
+    {
+      "path": "src/styles/theme.css",
+      "rationale": "If CSS variables are used as the core colors file, update --color-primary/--brand and related variables; ensure focus ring variables remain visible."
     },
     {
       "path": "src/styles/globals.css",
-      "rationale": "If CSS variables are used, update --color-primary/--brand and related variables; ensure focus ring variables remain visible."
+      "rationale": "If global CSS defines or overrides core color variables, update them to red and ensure global link/focus styles still reference tokens."
     },
     {
-      "path": "src/theme.ts",
-      "rationale": "If a JS/TS theme object is used (MUI/Chakra/styled-components), update palette primary to red and adjust shades for states."
+      "path": "tailwind.config.js",
+      "rationale": "If Tailwind is used, update the primary/brand color tokens to red and ensure variants exist for hover/active (prefer CSS-variable driven tokens if present)."
+    },
+    {
+      "path": "tailwind.config.ts",
+      "rationale": "If Tailwind config is TS, update the primary/brand color tokens to red and ensure variants exist for hover/active."
     },
     {
       "path": "src/App.tsx",
@@ -136,5 +151,5 @@
       "rationale": "Add/adjust tests to assert primary token is red and components consume it."
     }
   ],
-  "promptForAider": "## Task: Change color theme to red\n\nUpdate the app’s **primary/brand theme color** to **red** using the existing centralized theming approach (CSS variables / Tailwind config / UI library theme). Do **not** hardcode red in individual components unless the project already does so.\n\n### Implementation requirements\n- Update the global theme token(s) for primary/brand color to a red value.\n- Ensure primary UI elements reflect the change: primary buttons, links, active nav states, and form focus rings.\n- Ensure interaction states remain distinct: hover/active/disabled.\n- Preserve semantic colors (success/warning/error) unless they are explicitly tied to the primary token.\n- If light/dark mode exists, update both palettes with appropriate red shades for contrast.\n- Maintain accessibility: readable text on red backgrounds and visible focus indicators.\n\n### Validations / checks\n- Primary token resolves to red and is consumed by components.\n- Hover/active/disabled states are visually distinct.\n- Focus ring/outline remains visible.\n- No unintended changes to semantic status colors.\n\n### Tests to add/update\n- Theme config test: primary token equals expected red.\n- Component tests (RTL/Vitest/Jest depending on repo): primary Button and Link use theme primary color.\n- Focus state test: focus indicator present on keyboard navigation.\n- Dark mode test (if supported): primary remains red and readable.\n\n### Notes\n- Prefer editing existing theme files/config (e.g., tailwind.config.*, src/theme.*, globals.css) rather than per-component overrides.\n- Keep changes minimal and consistent with existing patterns.\n"
+  "promptForAider": "## Task: Change color theme to red (global)\n\nUpdate the app’s **primary/brand theme color** to **red** by editing the **centralized/core colors/tokens source** (any red shade is acceptable). The change must apply **globally across the entire app**.\n\n### Implementation requirements\n- Update the global theme token(s) for primary/brand color to a red value.\n- Ensure primary UI elements reflect the change: primary buttons, links, active nav states, and form focus rings.\n- Ensure interaction states remain distinct: hover/active/disabled.\n- Preserve semantic colors (success/warning/error) unless they are explicitly tied to the primary token.\n- If light/dark mode exists, update both palettes with appropriate red shades for contrast.\n- Maintain accessibility: readable text on red backgrounds and visible focus indicators.\n\n### Likely files to touch (depending on what the repo uses)\n- `src/theme.ts` / `src/theme/index.ts` (theme object / token assembly)\n- `src/styles/theme.css` and/or `src/styles/globals.css` (CSS variables / core colors)\n- `tailwind.config.js` or `tailwind.config.ts` (Tailwind color tokens)\n- Verify provider wiring in `src/App.tsx` / `src/main.tsx`\n\n### Validations / checks\n- Primary token resolves to red and is consumed by components (no per-component hardcoding).\n- Hover/active/disabled states are visually distinct.\n- Focus ring/outline remains visible.\n- No unintended changes to semantic status colors.\n- Dark mode (if present) still uses red primary with readable text.\n\n### Tests to add/update\n- Theme config test: primary token resolves to a red value from the core colors source.\n- Component tests: primary Button and Link use theme primary color (and hover state uses the correct token).\n- Focus state test: focus indicator present on keyboard navigation.\n- Dark mode test (if supported): primary remains red and readable.\n- Regression: success/warning/error alerts keep semantic colors.\n\n### Constraints\n- Prefer token changes over duplicative CSS rules.\n- Do not add new theming frameworks or heavy dependencies.\n- No new external calls or logging.\n"
 }
