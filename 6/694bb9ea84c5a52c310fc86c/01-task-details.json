@@ -73,13 +73,16 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should names with common punctuation/spaces (e.g., \"O'Neil\", \"Mary Jane\", \"Anne-Marie\") be considered invalid under “english characters only”, or should we allow these characters while still restricting to English letters?"
+      "question": "Should names with common punctuation/spaces (e.g., \"O'Neil\", \"Mary Jane\", \"Anne-Marie\") be considered invalid under “english characters only”, or should we allow these characters while still restricting to English letters?",
+      "answer":"allow only alphabets"
     },
     {
-      "question": "What exact user-facing error message copy is desired for (a) non-English characters and (b) exceeding 6 characters, or is standard copy acceptable?"
+      "question": "What exact user-facing error message copy is desired for (a) non-English characters and (b) exceeding 6 characters, or is standard copy acceptable?",
+      "answer":"standard best practice"
     },
     {
-      "question": "If a user pastes a longer value, should the UI hard-truncate to 6 characters, or should it allow entry but show an error and block submission?"
+      "question": "If a user pastes a longer value, should the UI hard-truncate to 6 characters, or should it allow entry but show an error and block submission?",
+      "answer":"Just block content if its larger than limit"
     }
   ],
   "llmFileReferences": [],
