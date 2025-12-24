@@ -34,7 +34,7 @@
       "answer": "yes, change the core color theme file"
     },
     {
-      "assumption": "The repo includes a frontend UI where theme changes are visible and testable."
+      "assumption": "The repo includes a frontend UI where theme changes are visible and testable.",
       "answer":"Yes"
     }
   ],
