@@ -64,13 +64,12 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should the 6-character limit count all characters including spaces, or should leading/trailing spaces be trimmed before validating length?"
+      "question": "Should the 6-character limit count all characters including spaces, or should leading/trailing spaces be trimmed before validating length?",
+      "answer":"trim spaces then count all characters"
     },
     {
-      "question": "What exact user-facing error message copy is desired for the First Name max-length validation?"
-    },
-    {
-      "question": "Should existing students with firstName > 6 be allowed to remain viewable/editable, and if editable, should the UI force shortening before saving?"
+      "question": "What exact user-facing error message copy is desired for the First Name max-length validation?",
+      "answer":"any valid message as you think"
     }
   ],
   "llmFileReferences": [
