@@ -66,10 +66,12 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should the 6-character limit count all characters including spaces and hyphens, or should the UI trim/normalize firstName before validating length?"
+      "question": "Should the 6-character limit count all characters including spaces and hyphens, or should the UI trim/normalize firstName before validating length?",
+      "answer":" count only the characters and trim the outer spaces"
     },
     {
-      "question": "When a user exceeds 6 characters, should the UX hard-block additional input (truncate) only, or also show an explicit validation message?"
+      "question": "When a user exceeds 6 characters, should the UX hard-block additional input (truncate) only, or also show an explicit validation message?",
+      "answer":"block the paste if more characters than limit"
     }
   ],
   "llmFileReferences": [
