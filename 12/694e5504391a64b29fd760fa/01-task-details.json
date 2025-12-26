@@ -11,68 +11,62 @@
   "taskStatus": "TODO",
   "taskCategory": "",
   "priority": "",
-  "llmTaskExplanation": "Implement a maximum length constraint of 7 characters for the `firstName` field in the student registration flow, enforced both client-side (student registration form UI) and server-side (backend Zod schema validation) to prevent invalid data from being submitted or persisted.\n\nBackend: Update `backend/src/schemas/student.schema.ts` to add a `.max(7, \"First name must be at most 7 characters\")` constraint (and keep `.min(1, ...)`). This ensures API requests creating/updating students reject `firstName` values longer than 7.\n\nFrontend: Update the Student Registration form component (likely under `frontend/src/components/business/StudentRegistrationForm/`) to enforce the same rule in form validation (likely using Zod or existing validators in `frontend/src/lib/validators.ts`) and optionally set the input `maxLength={7}` on the first name text input to prevent typing beyond 7 characters. Ensure the UI shows a clear validation message and blocks submission when invalid.\n\nAdd/adjust unit tests in both backend and frontend to cover the new constraint and ensure consistent behavior across layers.",
+  "llmTaskExplanation": "Implement a maximum length constraint of **7 letters** for the `firstName` field in the student registration flow, enforced both client-side (student registration form UI) and server-side (backend Zod schema validation) to prevent invalid data from being submitted or persisted.\n\nRule clarification (from resolved questions):\n- The limit is **letters only** (not total characters). Non-letter characters (spaces, hyphens, apostrophes, accents, etc.) do not count toward the 7-letter limit unless they are considered letters by Unicode letter classification.\n- UX should **hard-stop**: prevent the user from entering/pasting a value that would exceed 7 letters.\n\nBackend: Update `backend/src/schemas/student.schema.ts` to validate that `firstName` contains **<= 7 letters**. This likely requires a custom Zod refinement (e.g., count Unicode letters via `\\p{L}`) rather than `.max(7)` on raw string length. Return a clear message like `First name must contain at most 7 letters`.\n\nFrontend: Update the Student Registration form component to enforce the same rule in form validation and input handling. Because HTML `maxLength` limits total characters (not letters), implement an `onChange`/input handler that blocks paste/typing when the resulting value would exceed 7 letters, while still allowing non-letter characters. Show a clear inline validation message and block submission when invalid.\n\nAdd/adjust unit tests in both backend and frontend to cover the new letter-count constraint, including paste behavior and boundary cases.",
   "validations": [
-    "firstName is required and must be a string with length >= 1 after trimming (if trimming is already part of existing behavior; otherwise validate raw length).",
-    "firstName must not exceed 7 characters; values of length 8+ must be rejected with a clear error message.",
-    "Boundary: firstName length exactly 7 is accepted.",
-    "Boundary: firstName length exactly 1 is accepted.",
-    "Frontend form submission must be blocked when firstName is > 7 characters, and an inline error must be displayed.",
-    "Backend API must return a 4xx validation error (not 5xx) when firstName is > 7 characters."
+    "firstName is required and must be a string with length >= 1 (after trimming if trimming is already part of existing behavior; otherwise validate raw value).",
+    "firstName must contain at most 7 letters (Unicode letters). Count only letters; non-letter characters do not count toward the 7-letter limit.",
+    "Boundary: firstName with exactly 7 letters is accepted (even if it includes additional non-letter characters).",
+    "Boundary: firstName with 8 letters is rejected with a clear error message mentioning max 7 letters.",
+    "Frontend input must hard-stop: typing/pasting must not allow the field value to end up with > 7 letters.",
+    "Frontend form submission must be blocked when firstName would violate the 7-letter rule, and an inline error must be displayed.",
+    "Backend API must return a 4xx validation error (not 5xx) when firstName contains > 7 letters."
   ],
   "unitTests": [
-    "Backend (Vitest): StudentSchema parses successfully when firstName length is 7 (e.g., \"ABCDEFG\").",
-    "Backend (Vitest): StudentSchema rejects when firstName length is 8 (e.g., \"ABCDEFGH\") and error message mentions max length 7.",
+    "Backend (Vitest): StudentSchema parses successfully when firstName contains exactly 7 letters (e.g., \"ABCDEFG\").",
+    "Backend (Vitest): StudentSchema parses successfully when firstName contains 7 letters plus non-letters (e.g., \"ABC-DEFG\" or \"AB CD-EFG\").",
+    "Backend (Vitest): StudentSchema rejects when firstName contains 8 letters (e.g., \"ABCDEFGH\") and error message mentions max 7 letters.",
     "Backend (Vitest): StudentSchema rejects when firstName is empty string and returns the required/min error.",
-    "Frontend (React Testing Library + Vitest): StudentRegistrationForm shows a validation error when user enters 8 characters in firstName and attempts to submit.",
-    "Frontend (React Testing Library + Vitest): StudentRegistrationForm allows submission when firstName is 7 characters and all other required fields are valid.",
-    "Frontend (React Testing Library + Vitest): firstName input has `maxLength=7` (if implemented) to prevent typing beyond 7 characters."
+    "Frontend (React Testing Library + Vitest): StudentRegistrationForm hard-stops paste/typing so the input value never exceeds 7 letters (e.g., paste \"ABCDEFGH\" results in a value with <= 7 letters).",
+    "Frontend (React Testing Library + Vitest): StudentRegistrationForm shows a validation error and blocks submit when firstName contains 8 letters (e.g., by setting value programmatically or via sequence that bypasses hard-stop if applicable).",
+    "Frontend (React Testing Library + Vitest): StudentRegistrationForm allows submission when firstName contains 7 letters (and all other required fields are valid)."
   ],
   "acceptanceCriteria": [
-    "Given I am on the student registration page, when I enter more than 7 characters into the First Name field, then I see a validation message indicating the maximum is 7 characters and I cannot submit the form.",
-    "Given I submit the registration form with a First Name of 7 characters (and all other required fields valid), then the form submits successfully.",
-    "Given a client sends an API request with `firstName` longer than 7 characters, when the backend validates the payload, then the request is rejected with a validation error response (4xx) and the student is not created/updated."
+    "Given I am on the student registration page, when I type or paste a First Name that would result in more than 7 letters, then the input hard-stops so the field value does not exceed 7 letters and I see a validation message indicating the maximum is 7 letters.",
+    "Given I attempt to submit the registration form with a First Name containing more than 7 letters, then I cannot submit the form and I see an inline validation message indicating the maximum is 7 letters.",
+    "Given I submit the registration form with a First Name containing 7 letters (and all other required fields valid), then the form submits successfully.",
+    "Given a client sends an API request with `firstName` containing more than 7 letters, when the backend validates the payload, then the request is rejected with a 4xx validation error response and the student is not created/updated."
   ],
   "technicalDependencies": [
-    "Backend: zod (already in backend dependencies) for schema validation",
-    "Frontend: existing form validation utilities in `frontend/src/lib/validators.ts` (if present/used) and/or zod (already in frontend dependencies)",
-    "Frontend tests: @testing-library/react, @testing-library/user-event, vitest (already in frontend devDependencies)",
-    "Backend tests: vitest (already in backend devDependencies)"
+    "Backend: zod (already in backend dependencies) for schema validation (use refine/superRefine for letter counting).",
+    "Frontend: existing form validation utilities and/or zod (already in frontend dependencies) to mirror backend rule.",
+    "Frontend tests: @testing-library/react, @testing-library/user-event, vitest (already in frontend devDependencies).",
+    "Backend tests: vitest (already in backend devDependencies)."
   ],
   "security": [
-    "Enforce server-side validation (Zod) so clients cannot bypass the 7-character limit.",
+    "Enforce server-side validation (Zod refinement) so clients cannot bypass the 7-letter limit.",
     "Return validation errors without echoing sensitive payload data; only include field-level messages."
   ],
   "performance": [
-    "Client-side maxLength and validation should be O(1) and not add noticeable latency to typing or submission.",
+    "Letter-count validation should be O(n) over the input string and remain negligible for such short inputs.",
     "Avoid adding new heavy validation libraries; reuse existing Zod/validators to keep bundle size stable."
   ],
-  "businessContext": "Student registration requires a constrained first name length (max 7 characters). This is likely a business rule for formatting, ID card printing, or legacy system constraints. The rule must be consistent across UI and API to prevent invalid records.",
-  "otherNotes": "Ensure error copy is user-friendly and consistent between frontend and backend. Follow repo conventions: arrow functions only, exports consolidated at end of file, and co-locate tests with source. No mocking in tests per project testing strategy.",
+  "businessContext": "Student registration requires a constrained first name length of max 7 **letters** (letters-only count). This is likely a business rule for formatting, ID card printing, or legacy system constraints. The rule must be consistent across UI and API to prevent invalid records.",
+  "otherNotes": "Because the requirement is \"7 letters\" (not 7 characters), do not rely solely on HTML `maxLength` or Zod `.max(7)` on raw string length. Implement a shared/duplicated letter-count helper (Unicode-aware, e.g., using `\\p{L}`) in both frontend and backend, or implement equivalent logic in each layer.\n\nUX requirement: hard-stop paste/typing so the value cannot end up with > 7 letters.\n\nEnsure error copy is user-friendly and consistent between frontend and backend. Follow repo conventions: arrow functions only, exports consolidated at end of file, and co-locate tests with source. No mocking in tests per project testing strategy.",
   "llmAssumptions": [
+    {
+      "assumption": "The 7-letter limit counts Unicode letters (e.g., using a \\p{L} regex) and ignores non-letter characters for the count."
+    },
     {
       "assumption": "Student registration UI is implemented under `frontend/src/components/business/StudentRegistrationForm/` and is used by the `/students/new` route."
     },
     {
-      "assumption": "Backend uses `StudentSchema` to validate incoming create/update student requests, so adding `.max(7)` will enforce the rule at the API boundary."
+      "assumption": "Backend uses `StudentSchema` to validate incoming create/update student requests, so adding a letter-count refinement will enforce the rule at the API boundary."
     },
     {
       "assumption": "Frontend validation is either Zod-based or uses utilities in `frontend/src/lib/validators.ts`; the change should align with existing patterns discovered in-repo."
-    },
-    {
-      "assumption": "The requirement is strictly character count (not 'letters only'); i.e., any characters count toward the 7 limit."
     }
   ],
-  "llmOpenQuestions": [
-    {
-      "question": "Should the 7-character limit apply to all characters (including spaces, hyphens, accents), or only alphabetic letters after trimming/normalization?",
-      "answer":"count only letters"
-    },
-    {
-      "question": "What is the desired UX when the user exceeds 7 characters: hard-stop input via maxLength only, or allow typing but show an error and block submit (or both)?",
-      "answer":"hard stop paste"
-    }
-  ],
+  "llmOpenQuestions": [],
   "llmFileReferences": [
     {
       "path": "backend/src/schemas/student.schema.ts"
@@ -94,10 +88,10 @@
     }
   ],
   "inScope": [
-    "Add backend validation to reject `firstName` longer than 7 characters.",
-    "Add frontend validation to prevent submission when `firstName` is longer than 7 characters.",
-    "Optionally add `maxLength={7}` to the firstName input for immediate UX feedback.",
-    "Add/adjust backend and frontend tests to cover the new constraint."
+    "Add backend validation to reject `firstName` containing more than 7 letters (letters-only count).",
+    "Add frontend validation to prevent submission when `firstName` contains more than 7 letters.",
+    "Implement frontend hard-stop behavior for typing/paste so the input value cannot exceed 7 letters (letters-only count).",
+    "Add/adjust backend and frontend tests to cover the new letter-count constraint and hard-stop paste behavior."
   ],
   "outOfScope": [
     "Changing constraints for lastName or other fields.",
@@ -108,24 +102,24 @@
   "suggestedFileChanges": [
     {
       "path": "backend/src/schemas/student.schema.ts",
-      "rationale": "Add Zod `.max(7)` constraint to `firstName` to enforce server-side validation."
+      "rationale": "Add Zod refinement to enforce `firstName` contains at most 7 letters (letters-only count), with a clear error message."
     },
     {
       "path": "backend/src/schemas/student.schema.test.ts",
-      "rationale": "Add Vitest coverage for firstName max length boundary and rejection cases (co-located tests per repo pattern)."
+      "rationale": "Add Vitest coverage for letter-count boundary and rejection cases, including values with non-letter characters that should not count toward the limit."
     },
     {
       "path": "frontend/src/components/business/StudentRegistrationForm/StudentRegistrationForm.tsx",
-      "rationale": "Enforce max length in UI validation and add `maxLength={7}` to the firstName input if consistent with existing UI components."
+      "rationale": "Enforce 7-letter limit in UI validation and implement hard-stop typing/paste so the value cannot exceed 7 letters."
     },
     {
       "path": "frontend/src/components/business/StudentRegistrationForm/StudentRegistrationForm.test.tsx",
-      "rationale": "Add React Testing Library tests ensuring UI blocks submission and shows error when firstName exceeds 7 characters."
+      "rationale": "Add React Testing Library tests ensuring hard-stop paste/typing and that submission is blocked with an inline error when the value contains > 7 letters."
     },
     {
       "path": "frontend/src/lib/validators.ts",
-      "rationale": "If centralized validators exist, add/update a firstName validator to include max length 7 and reuse it in the form."
+      "rationale": "If centralized validators exist, add/update a firstName validator (letters-only count <= 7) and reuse it in the form."
     }
   ],
-  "promptForAider": "## Task: Limit student registration `firstName` to max 7 characters (frontend + backend)\n\n### What to change\n- **Backend**: Update `backend/src/schemas/student.schema.ts` to enforce `firstName` length **<= 7** using Zod (keep required/min validation). Use a clear message like `First name must be at most 7 characters`.\n- **Frontend**: In the student registration form (under `frontend/src/components/business/StudentRegistrationForm/` and used by `/students/new`), enforce the same rule:\n  - Add form validation that shows an inline error and blocks submit when `firstName` is > 7.\n  - Also set the input prop `maxLength={7}` if consistent with existing `TextInput` component usage.\n\n### Validations\n- firstName required, string length 1..7\n- length 7 accepted; length 8 rejected\n- backend returns 4xx validation error for invalid payload\n\n### Tests (no mocks)\n- Backend Vitest: StudentSchema accepts length 7; rejects length 8; rejects empty string.\n- Frontend Vitest + RTL: entering 8 chars shows error and prevents submit; 7 chars allows submit when other required fields are valid; assert `maxLength=7` if implemented.\n\n### Constraints / conventions\n- Follow `docs/coding-preferences.md`: arrow functions only, consolidated exports, co-located tests, no mocks.\n- Reuse existing validators/utilities (e.g., `frontend/src/lib/validators.ts`) and existing UI components.\n\n### Deliverable\n- Code changes + passing tests in both `backend` and `frontend`."
+  "promptForAider": "## Task: Limit student registration `firstName` to max 7 **letters** (frontend + backend)\n\n### Business rule (authoritative)\n- `firstName` must contain **no more than 7 letters**.\n- **Count only letters** (Unicode letters). Non-letter characters (spaces/hyphens/apostrophes/etc.) do **not** count toward the 7.\n- UX: **hard-stop paste/typing** so the input value cannot end up with > 7 letters.\n\n### What to change\n#### Backend\n- Update `backend/src/schemas/student.schema.ts`\n  - Replace/augment any `.max(7)` raw-length check with a Zod `refine`/`superRefine` that counts letters and enforces `<= 7`.\n  - Error message: `First name must contain at most 7 letters`.\n\n#### Frontend\n- Update `frontend/src/components/business/StudentRegistrationForm/StudentRegistrationForm.tsx`\n  - Mirror the same letter-count validation.\n  - Implement hard-stop behavior for typing/paste (note: HTML `maxLength` is not sufficient because it limits total characters, not letters).\n  - Show inline error and block submit when invalid.\n- If validators are centralized, update `frontend/src/lib/validators.ts` to include a reusable `firstName` letters-only max-7 validator.\n\n### Validations\n- required\n- <= 7 letters (letters-only count)\n- 7 letters accepted; 8 letters rejected\n- backend returns 4xx validation error for invalid payload\n\n### Tests (no mocks)\n- Backend Vitest (`backend/src/schemas/student.schema.test.ts`):\n  - accepts exactly 7 letters (\"ABCDEFG\")\n  - accepts 7 letters + non-letters (\"ABC-DEFG\")\n  - rejects 8 letters (\"ABCDEFGH\") with message mentioning max 7 letters\n  - rejects empty string\n- Frontend Vitest + RTL (`StudentRegistrationForm.test.tsx`):\n  - hard-stop paste/typing so value never exceeds 7 letters\n  - shows inline error + blocks submit when > 7 letters\n  - allows submit when 7 letters and other required fields valid\n\n### Conventions\n- Follow `docs/coding-preferences.md`: arrow functions only, consolidated exports, co-located tests, no mocks.\n- Keep error copy consistent between FE/BE.\n"
 }
