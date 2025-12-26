@@ -64,10 +64,12 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should the 6-character limit count spaces and punctuation as characters (e.g., \"Mary-J\"), or should the rule apply only to alphabetic letters?"
+      "question": "Should the 6-character limit count spaces and punctuation as characters (e.g., \"Mary-J\"), or should the rule apply only to alphabetic letters?",
+      "answer":"count only letters"
     },
     {
-      "question": "Should the UI silently prevent additional characters (hard maxLength only), or also show an explicit validation message when the user attempts to exceed 6 characters?"
+      "question": "Should the UI silently prevent additional characters (hard maxLength only), or also show an explicit validation message when the user attempts to exceed 6 characters?",
+      "answer":"yes prevent entire paste if it exceeds limit"
     }
   ],
   "llmFileReferences": [
