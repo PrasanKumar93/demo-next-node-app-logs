@@ -65,10 +65,12 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should the 7-character limit apply to all characters (including spaces, hyphens, accents), or only alphabetic letters after trimming/normalization?"
+      "question": "Should the 7-character limit apply to all characters (including spaces, hyphens, accents), or only alphabetic letters after trimming/normalization?",
+      "answer":"count only letters"
     },
     {
-      "question": "What is the desired UX when the user exceeds 7 characters: hard-stop input via maxLength only, or allow typing but show an error and block submit (or both)?"
+      "question": "What is the desired UX when the user exceeds 7 characters: hard-stop input via maxLength only, or allow typing but show an error and block submit (or both)?",
+      "answer":"hard stop paste"
     }
   ],
   "llmFileReferences": [
