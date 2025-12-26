@@ -10,5 +10,115 @@
   "description": "### Task explanation\n\nfirstName field in student registration form should not accept more than 6 letters\n\n### Task validations\n\n_No response_\n\n### Unit Test Cases\n\n_No response_\n\n### Task acceptance criteria\n\n- field must not take more than 6 characters\n\n### Task context files\n\n_No response_\n\n### Tech / Package Dependencies\n\n_No response_\n\n### Security & Performance\n\n_No response_\n\n### Other business context\n\n_No response_\n\n### Other notes\n\n_No response_\n\n### Checklist\n\n- [ ] Task documentation required\n- [ ] Task deployment required\n\n### Final Confirmation\n\n- [ ] I confirm the spec is correct and ready for development. (Good context now means less time spent in code review later :)",
   "taskStatus": "TODO",
   "taskCategory": "",
-  "priority": ""
+  "priority": "",
+  "llmTaskExplanation": "Implement a maximum length constraint of 6 characters for the `firstName` field in the student registration flow, enforced consistently on both backend and frontend.\n\nBackend: Update the Zod `StudentSchema` so `firstName` validates as a non-empty string with a maximum length of 6 characters, returning a clear validation message when exceeded. This ensures API requests cannot create/update a student with a longer first name.\n\nFrontend: Update the student registration form UI so the `firstName` input prevents/blocks entry beyond 6 characters (e.g., via `inputProps.maxLength=6` on the underlying MUI TextField) and shows a user-friendly validation error when the value length exceeds 6 (or when pasted text exceeds 6). Ensure the form submission is blocked when invalid.\n\nAdd/adjust tests: Backend Vitest tests should assert schema validation fails for >6 and passes for <=6. Frontend React Testing Library tests should assert the input is limited and that validation messaging/submission behavior is correct.",
+  "validations": [
+    "firstName is required (non-empty string).",
+    "firstName must be at most 6 characters (length <= 6).",
+    "If firstName exceeds 6 characters (typed or pasted), the UI must prevent additional characters and/or surface a validation error and block submission.",
+    "Whitespace-only firstName is treated as invalid (if current form/schema trims; otherwise keep existing behavior and only add max length).",
+    "Validation error message for max length is clear and specific (e.g., \"First name must be at most 6 characters\")."
+  ],
+  "unitTests": [
+    "Backend (Vitest): StudentSchema parses successfully when firstName length is 1..6 (e.g., \"A\", \"Samuel\" (6)).",
+    "Backend (Vitest): StudentSchema parse fails when firstName length is 7 (e.g., \"Samuele\"), and error includes the max-length message for firstName.",
+    "Backend (Vitest): StudentSchema parse fails when firstName is empty string, preserving existing required validation behavior.",
+    "Frontend (React Testing Library): firstName input has maxLength=6 (assert via DOM attribute on the underlying input).",
+    "Frontend (React Testing Library): typing more than 6 characters results in the input value being truncated/limited to 6 characters.",
+    "Frontend (React Testing Library): pasting a string longer than 6 results in value limited to 6 and/or shows validation error (depending on existing form behavior), and submission is blocked when invalid.",
+    "Frontend (React Testing Library): entering exactly 6 characters allows submission (assuming other required fields are filled with valid values in the test)."
+  ],
+  "acceptanceCriteria": [
+    "Given a user is on the student registration form, when they type into First Name, then the field does not allow more than 6 characters to be entered.",
+    "Given a user pastes a value longer than 6 characters into First Name, when the paste occurs, then the value is limited to 6 characters and the form does not submit with an invalid value.",
+    "Given a client submits a registration request with firstName longer than 6 characters, when the backend validates the payload, then the request is rejected with a validation error indicating firstName exceeds the maximum length.",
+    "Given firstName is 6 characters or fewer, when the user submits the form (with other required fields valid), then submission proceeds without firstName validation errors."
+  ],
+  "technicalDependencies": [
+    "Backend: zod (existing) for schema validation",
+    "Frontend: MUI TextField via existing TextInput component (existing)",
+    "Frontend: zod (existing) for form validation utilities (if already used in StudentRegistrationForm)",
+    "Testing: Vitest (backend + frontend) and React Testing Library (frontend)"
+  ],
+  "security": [
+    "Enforce max length on backend to prevent bypassing client-side constraints.",
+    "Do not log full student payloads containing PII in validation errors; log only field names and error summaries if logging exists."
+  ],
+  "performance": [
+    "Client-side maxLength attribute avoids unnecessary re-renders/validation churn while typing.",
+    "No measurable bundle size impact expected; reuse existing validation utilities/components."
+  ],
+  "businessContext": "Business rule: student first names must be 6 characters or fewer. This likely supports formatting constraints (e.g., ID cards, legacy systems, or fixed-width exports). The rule must be enforced consistently in UI and API to avoid inconsistent data entry.",
+  "otherNotes": "Implement validation in both layers (frontend UX + backend data integrity). Keep error copy consistent across UI and API where feasible. Update any shared types/validators if the project maintains a frontend Zod schema mirroring backend rules. Ensure changes follow repo conventions: arrow functions, consolidated exports, and no mocking in tests.",
+  "llmAssumptions": [
+    {
+      "assumption": "Student registration is created via the Next.js route `frontend/src/app/students/new/page.tsx` using `components/business/StudentRegistrationForm`."
+    },
+    {
+      "assumption": "The First Name input is implemented using a reusable UI component (likely `frontend/src/components/ui/TextInput`) that supports passing `inputProps`/`maxLength` down to the underlying MUI input."
+    },
+    {
+      "assumption": "Backend request validation uses `StudentSchema` (or a derived schema) to validate incoming create/update student payloads."
+    },
+    {
+      "assumption": "Frontend form validation is either Zod-based or can be extended to include a max-length rule without introducing new libraries."
+    }
+  ],
+  "llmOpenQuestions": [
+    {
+      "question": "Should the 6-character limit count all characters including spaces and hyphens, or should the UI trim/normalize firstName before validating length?"
+    },
+    {
+      "question": "When a user exceeds 6 characters, should the UX hard-block additional input (truncate) only, or also show an explicit validation message?"
+    }
+  ],
+  "llmFileReferences": [
+    {
+      "path": "backend/src/schemas/student.schema.ts"
+    },
+    {
+      "path": "frontend/src/app/students/new/page.tsx"
+    },
+    {
+      "path": "frontend/src/components/business/StudentRegistrationForm/"
+    },
+    {
+      "path": "frontend/src/components/ui/TextInput/"
+    }
+  ],
+  "inScope": [
+    "Add backend Zod validation: firstName max length 6.",
+    "Add frontend input constraint (maxLength=6) for firstName in student registration form.",
+    "Add/adjust backend Vitest tests for schema validation.",
+    "Add/adjust frontend Vitest/RTL tests for input limitation and validation/submission behavior."
+  ],
+  "outOfScope": [
+    "Changing limits for lastName or other fields.",
+    "Database migrations or retroactively cleaning existing student records with longer first names.",
+    "Adding new third-party validation/form libraries.",
+    "Changing API endpoints or response formats beyond existing validation error behavior."
+  ],
+  "suggestedFileChanges": [
+    {
+      "path": "backend/src/schemas/student.schema.ts",
+      "rationale": "Add `.max(6, ...)` constraint to `firstName` in StudentSchema."
+    },
+    {
+      "path": "backend/src/schemas/student.schema.test.ts",
+      "rationale": "Add Vitest coverage for firstName <=6 pass and >6 fail (co-located tests per repo conventions)."
+    },
+    {
+      "path": "frontend/src/components/business/StudentRegistrationForm/StudentRegistrationForm.tsx",
+      "rationale": "Apply maxLength=6 to firstName input and ensure form-level validation blocks submission when exceeded."
+    },
+    {
+      "path": "frontend/src/components/business/StudentRegistrationForm/StudentRegistrationForm.test.tsx",
+      "rationale": "Add RTL tests verifying maxLength attribute, typing/paste behavior, and submission blocking."
+    },
+    {
+      "path": "frontend/src/lib/validators.ts",
+      "rationale": "If the form uses shared Zod validators, add/update a firstName validator with max length 6 to keep rules centralized."
+    }
+  ],
+  "promptForAider": "## Task: Limit student `firstName` to max 6 characters (frontend + backend)\n\n### What to change\n- **Backend**: Update `backend/src/schemas/student.schema.ts` so `firstName` is `z.string().min(1, ...).max(6, \"First name must be at most 6 characters\")`.\n- **Frontend**: In the student registration form (likely `frontend/src/components/business/StudentRegistrationForm/StudentRegistrationForm.tsx`), ensure the First Name input:\n  - sets the underlying input `maxLength` to **6** (e.g., MUI `inputProps={{ maxLength: 6 }}`)\n  - shows a validation error when value length > 6 (especially for paste) and blocks submit.\n\n### Validations\n- firstName required\n- firstName length <= 6\n- UI prevents/limits typing beyond 6 and handles paste > 6\n- Backend rejects payloads with firstName length > 6\n\n### Tests (no mocks)\n- Add backend Vitest test (co-located) verifying schema passes for 1..6 and fails for 7 with correct error.\n- Add frontend RTL tests verifying:\n  - input has `maxLength=6`\n  - typing >6 results in value length 6\n  - paste >6 is limited and/or triggers validation error; submit blocked when invalid\n\n### Notes\n- Follow repo conventions: arrow functions only, consolidated exports at end, file names hyphenated, `export type` separately.\n- Keep error message clear and consistent.\n"
 }
