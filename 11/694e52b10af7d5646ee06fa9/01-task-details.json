@@ -63,10 +63,12 @@
   ],
   "llmOpenQuestions": [
     {
-      "question": "Should leading/trailing whitespace be trimmed before applying the 6-character limit (e.g., \" John \" -> \"John\"), or should spaces count toward the limit as typed?"
+      "question": "Should leading/trailing whitespace be trimmed before applying the 6-character limit (e.g., \" John \" -> \"John\"), or should spaces count toward the limit as typed?",
+      "answer":"yes trim the spaces"
     },
     {
-      "question": "Should the UI hard-prevent typing beyond 6 characters (maxLength only), or allow typing and show an error message (or both)?"
+      "question": "Should the UI hard-prevent typing beyond 6 characters (maxLength only), or allow typing and show an error message (or both)?",
+      "answer":"yes prevent larger text than limit"
     }
   ],
   "llmFileReferences": [
