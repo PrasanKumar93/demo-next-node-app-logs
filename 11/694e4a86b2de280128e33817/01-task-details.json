@@ -10,5 +10,122 @@
   "description": "### Task explanation\n\nfirstName field in student registration form should not accept more than 6 letters\n\n### Task validations\n\n_No response_\n\n### Unit Test Cases\n\n_No response_\n\n### Task acceptance criteria\n\n- field must not take more than 6 characters\n\n### Task context files\n\n_No response_\n\n### Tech / Package Dependencies\n\n_No response_\n\n### Security & Performance\n\n_No response_\n\n### Other business context\n\n_No response_\n\n### Other notes\n\n_No response_\n\n### Checklist\n\n- [ ] Task documentation required\n- [ ] Task deployment required\n\n### Final Confirmation\n\n- [ ] I confirm the spec is correct and ready for development. (Good context now means less time spent in code review later :)",
   "taskStatus": "TODO",
   "taskCategory": "",
-  "priority": ""
+  "priority": "",
+  "llmTaskExplanation": "Implement a maximum length constraint of 6 characters for the `firstName` field in the student registration flow, enforced both on the frontend form and on the backend validation schema. On the backend, update the Zod `StudentSchema` so `firstName` rejects values longer than 6 characters with a clear validation message. On the frontend, update the Student Registration form input for `firstName` to prevent/limit entry beyond 6 characters (e.g., `inputProps.maxLength=6`) and ensure the form validation schema (Zod v4) also enforces `firstName` length <= 6 so users get immediate feedback before submission. Add/adjust tests to cover both backend schema validation and frontend form behavior/error messaging.",
+  "validations": [
+    "firstName is required (non-empty string).",
+    "firstName must be a string with length between 1 and 6 characters inclusive.",
+    "firstName with length 6 is accepted.",
+    "firstName with length 7+ is rejected with a user-visible validation error (frontend) and a schema validation error (backend).",
+    "firstName should not be silently truncated on submit; it should be blocked at input level and/or fail validation with a clear message.",
+    "Whitespace-only firstName (e.g., \"   \") should be treated as invalid (trim then validate) if the form currently trims; otherwise it should fail the existing min(1) check only when empty string."
+  ],
+  "unitTests": [
+    "Backend (Vitest): StudentSchema parses successfully when firstName length is 1 and 6 (boundary tests).",
+    "Backend (Vitest): StudentSchema rejects when firstName length is 7+ and returns the expected error path/message for `firstName`.",
+    "Frontend (React Testing Library): StudentRegistrationForm firstName input has `maxLength=6` (assert input attribute/props).",
+    "Frontend (React Testing Library): typing more than 6 characters into firstName results in the input value being at most 6 characters (if maxLength is used).",
+    "Frontend (React Testing Library): submitting the form with firstName length 7+ shows a validation error message and does not submit (or does not call the submit handler / does not send the request).",
+    "Frontend (React Testing Library): submitting with firstName length 6 succeeds past client-side validation (other required fields can be filled with valid values)."
+  ],
+  "acceptanceCriteria": [
+    "Given a user is on the student registration page, when they enter a first name longer than 6 characters, then the UI prevents additional characters and/or shows a validation error indicating the maximum is 6 characters.",
+    "Given a user submits the registration form with a firstName longer than 6 characters (e.g., via manual request or bypassing UI), then the backend rejects the request due to validation and returns an appropriate validation error for `firstName`.",
+    "Given firstName is 6 characters or fewer and all other required fields are valid, when the user submits the form, then the submission proceeds without firstName-related validation errors.",
+    "Automated tests exist covering the 6-character boundary and the >6 rejection for both frontend and backend validation."
+  ],
+  "technicalDependencies": [
+    "Backend: zod (^3) in `backend/src/schemas/student.schema.ts`",
+    "Frontend: Zod (^4) form validation (likely in `frontend/src/lib/validators.ts` or form-local schema)",
+    "Frontend UI: existing TextInput component (`frontend/src/components/ui/TextInput/`) and StudentRegistrationForm (`frontend/src/components/business/StudentRegistrationForm/`)",
+    "Testing: Vitest (backend + frontend) and React Testing Library (frontend)"
+  ],
+  "security": [
+    "Enforce server-side validation (do not rely solely on client-side maxLength).",
+    "Do not log full PII payloads on validation errors; log only necessary metadata if logging exists.",
+    "Return validation errors without exposing stack traces in production."
+  ],
+  "performance": [
+    "Client-side validation should be synchronous and lightweight (Zod schema check only).",
+    "No additional network calls introduced; no measurable bundle size increase beyond minor schema changes."
+  ],
+  "businessContext": "Student registration requires a constrained first name length (<= 6). This may be due to an external system constraint (e.g., student ID card printing, legacy SIS field width) and must be consistently enforced across UI and API to prevent invalid records.",
+  "otherNotes": "Prefer consistent validation messages across frontend and backend (e.g., \"First name must be at most 6 characters\"). Ensure changes follow repo coding preferences (arrow functions, consolidated exports, hyphenated filenames). If the frontend currently uses a shared validator utility, update it rather than duplicating rules. Update any examples/story pages if they include the form and rely on longer names.",
+  "llmAssumptions": [
+    {
+      "assumption": "There is a frontend Zod validation schema for the student registration form (either co-located with StudentRegistrationForm or in `frontend/src/lib/validators.ts`) that should be updated to enforce max length 6."
+    },
+    {
+      "assumption": "The StudentRegistrationForm uses a TextInput (or MUI TextField wrapper) that supports passing `inputProps` (or equivalent) to set `maxLength`."
+    },
+    {
+      "assumption": "Backend request validation uses `StudentSchema` (directly or indirectly) for create-student endpoints, so updating it will enforce the rule server-side."
+    },
+    {
+      "assumption": "Tests can be written without mocks by rendering the real form component and by directly invoking the real Zod schema parse methods."
+    }
+  ],
+  "llmOpenQuestions": [
+    {
+      "question": "Should the 6-character limit apply to all users universally, or only for specific student types/campuses/programs?"
+    },
+    {
+      "question": "What exact user-facing error copy is desired for exceeding 6 characters (and should it match backend error text exactly)?"
+    },
+    {
+      "question": "Should leading/trailing whitespace be trimmed before validating the 6-character limit (e.g., \" John \" counts as 4 vs 6)?"
+    }
+  ],
+  "llmFileReferences": [
+    {
+      "path": "backend/src/schemas/student.schema.ts"
+    },
+    {
+      "path": "frontend/src/app/students/new/page.tsx"
+    },
+    {
+      "path": "frontend/src/components/business/StudentRegistrationForm/"
+    },
+    {
+      "path": "frontend/src/components/ui/TextInput/"
+    },
+    {
+      "path": "frontend/src/lib/validators.ts"
+    }
+  ],
+  "inScope": [
+    "Add backend validation: `firstName` max length 6 in StudentSchema.",
+    "Add frontend input constraint (maxLength=6) for firstName field in the student registration form.",
+    "Add/update frontend validation schema to enforce firstName length <= 6 with a clear error message.",
+    "Add/adjust backend and frontend tests to cover boundary and rejection cases."
+  ],
+  "outOfScope": [
+    "Changing constraints for lastName or other fields.",
+    "Database migrations or retroactively fixing existing student records with longer first names.",
+    "Adding new API endpoints or changing response formats beyond validation error content already used.",
+    "Internationalization/localization of validation messages (unless already present)."
+  ],
+  "suggestedFileChanges": [
+    {
+      "path": "backend/src/schemas/student.schema.ts",
+      "rationale": "Enforce `firstName` maximum length of 6 via Zod (e.g., `.max(6, ...)`) to ensure server-side validation."
+    },
+    {
+      "path": "backend/src/schemas/student.schema.test.ts",
+      "rationale": "Add Vitest coverage for StudentSchema firstName boundary (6) and rejection (>6). (Create if not present; co-locate tests per repo conventions.)"
+    },
+    {
+      "path": "frontend/src/components/business/StudentRegistrationForm/",
+      "rationale": "Update the firstName field to set input maxLength and ensure the form-level validation schema enforces <= 6."
+    },
+    {
+      "path": "frontend/src/lib/validators.ts",
+      "rationale": "If the student form schema is defined/shared here, update firstName rule to `.max(6, ...)` to keep validation centralized."
+    },
+    {
+      "path": "frontend/src/components/business/StudentRegistrationForm/student-registration-form.test.tsx",
+      "rationale": "Add React Testing Library tests verifying maxLength behavior and validation error on >6 characters. (Filename may vary; follow existing naming.)"
+    }
+  ],
+  "promptForAider": "## Task: Limit student registration `firstName` to max 6 characters\n\n### What to change\n- Enforce `firstName` length <= 6 across the stack.\n- Backend: update `backend/src/schemas/student.schema.ts` Zod schema to add `.max(6, \"First name must be at most 6 characters\")` (keep existing required/min(1)).\n- Frontend: in StudentRegistrationForm, set the firstName input to prevent more than 6 chars (e.g., `inputProps={{ maxLength: 6 }}` or equivalent for the existing TextInput wrapper) and ensure the frontend Zod validation schema also enforces `.max(6, ...)` with a clear message.\n\n### Validations\n- firstName required; length 1..6 inclusive.\n- length 6 accepted; length 7+ rejected (frontend shows error; backend rejects).\n\n### Tests (no mocks)\n- Backend Vitest: StudentSchema parse succeeds for length 1 and 6; fails for 7+ with error on `firstName`.\n- Frontend RTL+Vitest: firstName input has maxLength=6; typing >6 results in value length <=6; submitting with >6 shows validation error and does not submit.\n\n### Notes\n- Follow repo conventions: arrow functions only, consolidated exports at end, hyphenated filenames, `export type` separately.\n- Keep error message consistent across FE/BE if feasible.\n"
 }
