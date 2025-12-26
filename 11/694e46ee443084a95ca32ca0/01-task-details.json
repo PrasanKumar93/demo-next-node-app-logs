@@ -1,0 +1,14 @@
+{
+  "taskId": 11,
+  "name": "[TASK]: firstName field in student registration form should not accept more than 6 letters",
+  "createdAt": "2025-12-26T08:08:18.000Z",
+  "updatedAt": "2025-12-26T08:27:05.000Z",
+  "allAssignees": [
+    "PrasanKumar93"
+  ],
+  "assignee": "PrasanKumar93",
+  "description": "### Task explanation\n\nfirstName field in student registration form should not accept more than 6 letters\n\n### Task validations\n\n_No response_\n\n### Unit Test Cases\n\n_No response_\n\n### Task acceptance criteria\n\n- field must not take more than 6 characters\n\n### Task context files\n\n_No response_\n\n### Tech / Package Dependencies\n\n_No response_\n\n### Security & Performance\n\n_No response_\n\n### Other business context\n\n_No response_\n\n### Other notes\n\n_No response_\n\n### Checklist\n\n- [ ] Task documentation required\n- [ ] Task deployment required\n\n### Final Confirmation\n\n- [ ] I confirm the spec is correct and ready for development. (Good context now means less time spent in code review later :)",
+  "taskStatus": "TODO",
+  "taskCategory": "",
+  "priority": ""
+}
