@@ -66,14 +66,14 @@
     }
   ],
   "llmOpenQuestions": [
+   
     {
-      "question": "Should the 6-character limit apply to all users universally, or only for specific student types/campuses/programs?"
+      "question": "What exact user-facing error copy is desired for exceeding 6 characters (and should it match backend error text exactly)?",
+      "answer":"any valid error"
     },
     {
-      "question": "What exact user-facing error copy is desired for exceeding 6 characters (and should it match backend error text exactly)?"
-    },
-    {
-      "question": "Should leading/trailing whitespace be trimmed before validating the 6-character limit (e.g., \" John \" counts as 4 vs 6)?"
+      "question": "Should leading/trailing whitespace be trimmed before validating the 6-character limit (e.g., \" John \" counts as 4 vs 6)?",
+      "answer":"yes trim lead and trail spaces"
     }
   ],
   "llmFileReferences": [
